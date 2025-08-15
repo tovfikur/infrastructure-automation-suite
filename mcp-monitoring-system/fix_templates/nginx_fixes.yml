@@ -1,0 +1,245 @@
+# Nginx Fix Templates for MCP System
+
+fix_templates:
+  # Configuration and startup fixes
+  config_test_and_reload:
+    name: "Test configuration and reload Nginx"
+    commands:
+      - "nginx -t"
+      - "systemctl reload nginx"
+    rollback_commands:
+      - "systemctl restart nginx"
+    validation_commands:
+      - "nginx -t"
+      - "systemctl status nginx"
+    requires_restart: false
+    estimated_downtime: 5
+    risk_level: "low"
+
+  restart_nginx:
+    name: "Restart Nginx service"
+    commands:
+      - "systemctl restart nginx"
+    rollback_commands: []
+    validation_commands:
+      - "systemctl status nginx"
+      - "nginx -t"
+    requires_restart: true
+    estimated_downtime: 30
+    risk_level: "medium"
+
+  # Permission fixes
+  fix_permissions:
+    name: "Fix Nginx file and directory permissions"
+    commands:
+      - "chown -R www-data:www-data /var/log/nginx"
+      - "chmod 644 /etc/nginx/nginx.conf"
+      - "chmod -R 644 /etc/nginx/sites-available"
+      - "chmod -R 755 /var/www/html"
+    rollback_commands: []
+    validation_commands:
+      - "ls -la /var/log/nginx"
+      - "nginx -t"
+    requires_restart: false
+    estimated_downtime: 0
+    risk_level: "low"
+
+  # Resource limit fixes
+  increase_worker_limits:
+    name: "Increase Nginx worker limits"
+    commands:
+      - "sed -i 's/worker_connections [0-9]*/worker_connections 2048/' /etc/nginx/nginx.conf"
+      - "nginx -t"
+      - "systemctl reload nginx"
+    rollback_commands:
+      - "sed -i 's/worker_connections 2048/worker_connections 1024/' /etc/nginx/nginx.conf"
+      - "systemctl reload nginx"
+    validation_commands:
+      - "nginx -t"
+      - "systemctl status nginx"
+    requires_restart: false
+    estimated_downtime: 10
+    risk_level: "medium"
+
+  fix_file_limits:
+    name: "Fix file descriptor limits"
+    commands:
+      - "echo 'www-data soft nofile 65535' >> /etc/security/limits.conf"
+      - "echo 'www-data hard nofile 65535' >> /etc/security/limits.conf"
+      - "systemctl restart nginx"
+    rollback_commands:
+      - "sed -i '/www-data.*nofile/d' /etc/security/limits.conf"
+      - "systemctl restart nginx"
+    validation_commands:
+      - "systemctl status nginx"
+      - "ulimit -n"
+    requires_restart: true
+    estimated_downtime: 30
+    risk_level: "medium"
+
+  # Cache and temporary file fixes
+  clear_proxy_cache:
+    name: "Clear Nginx proxy cache"
+    commands:
+      - "find /var/cache/nginx -type f -delete"
+      - "systemctl reload nginx"
+    rollback_commands: []
+    validation_commands:
+      - "systemctl status nginx"
+      - "ls /var/cache/nginx"
+    requires_restart: false
+    estimated_downtime: 5
+    risk_level: "low"
+
+  clean_temp_files:
+    name: "Clean temporary files"
+    commands:
+      - "find /tmp/nginx -type f -mtime +1 -delete"
+      - "find /var/tmp -name 'nginx*' -mtime +1 -delete"
+    rollback_commands: []
+    validation_commands:
+      - "df -h /tmp"
+      - "systemctl status nginx"
+    requires_restart: false
+    estimated_downtime: 0
+    risk_level: "low"
+
+  # Log rotation and maintenance
+  rotate_logs:
+    name: "Force log rotation"
+    commands:
+      - "logrotate -f /etc/logrotate.d/nginx"
+      - "systemctl reload nginx"
+    rollback_commands: []
+    validation_commands:
+      - "ls -la /var/log/nginx/"
+      - "systemctl status nginx"
+    requires_restart: false
+    estimated_downtime: 5
+    risk_level: "low"
+
+  # Security and access fixes
+  fix_security_headers:
+    name: "Add security headers"
+    commands:
+      - "echo 'add_header X-Frame-Options SAMEORIGIN always;' >> /etc/nginx/conf.d/security.conf"
+      - "echo 'add_header X-Content-Type-Options nosniff always;' >> /etc/nginx/conf.d/security.conf"
+      - "nginx -t"
+      - "systemctl reload nginx"
+    rollback_commands:
+      - "rm -f /etc/nginx/conf.d/security.conf"
+      - "systemctl reload nginx"
+    validation_commands:
+      - "nginx -t"
+      - "systemctl status nginx"
+    requires_restart: false
+    estimated_downtime: 10
+    risk_level: "low"
+
+  # SSL/TLS fixes
+  fix_ssl_configuration:
+    name: "Fix SSL configuration"
+    commands:
+      - "nginx -t"
+      - "openssl x509 -in /etc/ssl/certs/nginx.crt -text -noout"
+      - "systemctl reload nginx"
+    rollback_commands: []
+    validation_commands:
+      - "nginx -t"
+      - "systemctl status nginx"
+      - "openssl s_client -connect localhost:443 -servername localhost"
+    requires_restart: false
+    estimated_downtime: 10
+    risk_level: "medium"
+
+  # Performance optimization
+  optimize_buffers:
+    name: "Optimize Nginx buffers"
+    commands:
+      - "sed -i '/client_body_buffer_size/c\\client_body_buffer_size 16K;' /etc/nginx/nginx.conf"
+      - "sed -i '/client_header_buffer_size/c\\client_header_buffer_size 1k;' /etc/nginx/nginx.conf"
+      - "nginx -t"
+      - "systemctl reload nginx"
+    rollback_commands:
+      - "sed -i '/client_body_buffer_size/c\\client_body_buffer_size 8K;' /etc/nginx/nginx.conf"
+      - "sed -i '/client_header_buffer_size/c\\client_header_buffer_size 1k;' /etc/nginx/nginx.conf"
+      - "systemctl reload nginx"
+    validation_commands:
+      - "nginx -t"
+      - "systemctl status nginx"
+    requires_restart: false
+    estimated_downtime: 10
+    risk_level: "low"
+
+  # Upstream and load balancing fixes
+  check_upstream_servers:
+    name: "Check upstream server availability"
+    commands:
+      - "nginx -T | grep upstream -A 10"
+      - "for server in $(nginx -T | grep 'server ' | awk '{print $2}' | cut -d';' -f1); do curl -I $server || echo \"$server is down\"; done"
+    rollback_commands: []
+    validation_commands:
+      - "nginx -t"
+      - "systemctl status nginx"
+    requires_restart: false
+    estimated_downtime: 0
+    risk_level: "low"
+
+  # Emergency fixes
+  emergency_restart:
+    name: "Emergency restart with backup restoration"
+    commands:
+      - "systemctl stop nginx"
+      - "pkill -f nginx"
+      - "systemctl start nginx"
+    rollback_commands:
+      - "systemctl stop nginx"
+      - "cp /etc/nginx/nginx.conf.backup /etc/nginx/nginx.conf"
+      - "systemctl start nginx"
+    validation_commands:
+      - "systemctl status nginx"
+      - "nginx -t"
+      - "curl -I http://localhost"
+    requires_restart: true
+    estimated_downtime: 60
+    risk_level: "high"
+
+  # Monitoring and diagnostics
+  diagnose_nginx:
+    name: "Run Nginx diagnostics"
+    commands:
+      - "nginx -V"
+      - "nginx -t"
+      - "systemctl status nginx"
+      - "netstat -tlnp | grep nginx"
+      - "ps aux | grep nginx"
+    rollback_commands: []
+    validation_commands:
+      - "systemctl status nginx"
+    requires_restart: false
+    estimated_downtime: 0
+    risk_level: "low"
+
+# Common fix combinations
+fix_combinations:
+  standard_reload:
+    - "config_test_and_reload"
+
+  permission_and_reload:
+    - "fix_permissions"
+    - "config_test_and_reload"
+
+  optimization_package:
+    - "optimize_buffers"
+    - "increase_worker_limits"
+    - "config_test_and_reload"
+
+  security_hardening:
+    - "fix_security_headers"
+    - "fix_permissions"
+    - "config_test_and_reload"
+
+  emergency_recovery:
+    - "emergency_restart"
+    - "fix_permissions"
+    - "diagnose_nginx"

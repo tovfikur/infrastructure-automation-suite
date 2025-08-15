@@ -1,0 +1,214 @@
+# Nginx Error Patterns for MCP System
+
+patterns:
+  # Critical server errors
+  - name: "nginx_worker_died"
+    pattern: "worker process \\d+ exited on signal|worker process \\d+ died"
+    severity: 1
+    service_type: "nginx"
+    description: "Nginx worker process crashed"
+    auto_fix: true
+    cooldown_seconds: 300
+
+  - name: "nginx_config_error"
+    pattern: "configuration file.*test failed|nginx: \\[emerg\\]"
+    severity: 1
+    service_type: "nginx"
+    description: "Nginx configuration error"
+    auto_fix: false
+    cooldown_seconds: 180
+
+  - name: "nginx_permission_denied"
+    pattern: "permission denied|access forbidden|13: Permission denied"
+    severity: 2
+    service_type: "nginx"
+    description: "Permission denied errors"
+    auto_fix: true
+    cooldown_seconds: 600
+
+  - name: "nginx_too_many_files"
+    pattern: "too many open files|24: Too many open files"
+    severity: 2
+    service_type: "nginx"
+    description: "File descriptor limit reached"
+    auto_fix: true
+    cooldown_seconds: 300
+
+  # Connection and network errors
+  - name: "nginx_upstream_timeout"
+    pattern: "upstream timed out|110: Connection timed out.*upstream"
+    severity: 2
+    service_type: "nginx"
+    description: "Upstream server timeout"
+    auto_fix: false
+    cooldown_seconds: 300
+
+  - name: "nginx_upstream_refused"
+    pattern: "connect\\(\\) failed.*111: Connection refused.*upstream"
+    severity: 2
+    service_type: "nginx"
+    description: "Upstream server connection refused"
+    auto_fix: false
+    cooldown_seconds: 300
+
+  - name: "nginx_502_errors"
+    pattern: "502 Bad Gateway|upstream sent invalid response"
+    severity: 2
+    service_type: "nginx"
+    description: "Bad Gateway errors"
+    auto_fix: false
+    cooldown_seconds: 180
+
+  - name: "nginx_503_errors"
+    pattern: "503 Service Temporarily Unavailable"
+    severity: 2
+    service_type: "nginx"
+    description: "Service unavailable errors"
+    auto_fix: false
+    cooldown_seconds: 180
+
+  - name: "nginx_504_errors"
+    pattern: "504 Gateway Time-out"
+    severity: 2
+    service_type: "nginx"
+    description: "Gateway timeout errors"
+    auto_fix: false
+    cooldown_seconds: 180
+
+  # SSL/TLS errors
+  - name: "nginx_ssl_cert_error"
+    pattern: "SSL_CTX_use_certificate|SSL certificate problem|SSL: error"
+    severity: 2
+    service_type: "nginx"
+    description: "SSL certificate errors"
+    auto_fix: false
+    cooldown_seconds: 1800
+
+  - name: "nginx_ssl_handshake_failed"
+    pattern: "SSL_do_handshake\\(\\) failed|ssl handshake failed"
+    severity: 3
+    service_type: "nginx"
+    description: "SSL handshake failures"
+    auto_fix: false
+    cooldown_seconds: 600
+
+  # Resource exhaustion
+  - name: "nginx_memory_error"
+    pattern: "cannot allocate memory|ngx_palloc.*failed"
+    severity: 1
+    service_type: "nginx"
+    description: "Memory allocation errors"
+    auto_fix: false
+    cooldown_seconds: 300
+
+  - name: "nginx_disk_full"
+    pattern: "No space left on device|28: No space left on device"
+    severity: 1
+    service_type: "nginx"
+    description: "Disk space exhausted"
+    auto_fix: false
+    cooldown_seconds: 600
+
+  # Rate limiting and DoS
+  - name: "nginx_rate_limit_exceeded"
+    pattern: "limiting requests|limiting connections"
+    severity: 3
+    service_type: "nginx"
+    description: "Rate limiting activated"
+    auto_fix: false
+    cooldown_seconds: 300
+
+  - name: "nginx_client_timeout"
+    pattern: "client timed out|110: Connection timed out.*client"
+    severity: 3
+    service_type: "nginx"
+    description: "Client connection timeout"
+    auto_fix: false
+    cooldown_seconds: 600
+
+  # File system errors
+  - name: "nginx_file_not_found"
+    pattern: "open\\(\\).*failed.*2: No such file or directory"
+    severity: 3
+    service_type: "nginx"
+    description: "File or directory not found"
+    auto_fix: false
+    cooldown_seconds: 1800
+
+  - name: "nginx_directory_index_forbidden"
+    pattern: "directory index of.*is forbidden"
+    severity: 3
+    service_type: "nginx"
+    description: "Directory listing forbidden"
+    auto_fix: false
+    cooldown_seconds: 1800
+
+  # Security issues
+  - name: "nginx_suspicious_request"
+    pattern: "400 Bad Request|414 Request-URI Too Large|413 Request Entity Too Large"
+    severity: 3
+    service_type: "nginx"
+    description: "Suspicious or malformed requests"
+    auto_fix: false
+    cooldown_seconds: 300
+
+  - name: "nginx_security_header_missing"
+    pattern: "Security.*header.*missing"
+    severity: 3
+    service_type: "nginx"
+    description: "Missing security headers"
+    auto_fix: false
+    cooldown_seconds: 3600
+
+  # Performance issues
+  - name: "nginx_slow_upstream"
+    pattern: "upstream response time.*exceeded"
+    severity: 3
+    service_type: "nginx"
+    description: "Slow upstream response"
+    auto_fix: false
+    cooldown_seconds: 600
+
+  - name: "nginx_worker_connections_exceeded"
+    pattern: "worker_connections.*are not enough"
+    severity: 2
+    service_type: "nginx"
+    description: "Worker connections limit reached"
+    auto_fix: true
+    cooldown_seconds: 300
+
+  # Log rotation and maintenance
+  - name: "nginx_log_rotation_failed"
+    pattern: "log rotation.*failed|could not reopen.*log"
+    severity: 3
+    service_type: "nginx"
+    description: "Log rotation issues"
+    auto_fix: true
+    cooldown_seconds: 3600
+
+  # Proxy cache issues
+  - name: "nginx_cache_write_error"
+    pattern: "cache.*write.*failed|proxy_cache.*error"
+    severity: 3
+    service_type: "nginx"
+    description: "Proxy cache write errors"
+    auto_fix: true
+    cooldown_seconds: 600
+
+  # Load balancing issues
+  - name: "nginx_upstream_server_down"
+    pattern: "no live upstreams|upstream server temporarily disabled"
+    severity: 2
+    service_type: "nginx"
+    description: "All upstream servers down"
+    auto_fix: false
+    cooldown_seconds: 300
+
+  # HTTP version issues
+  - name: "nginx_http_version_not_supported"
+    pattern: "HTTP version not supported|505 HTTP Version Not Supported"
+    severity: 3
+    service_type: "nginx"
+    description: "Unsupported HTTP version"
+    auto_fix: false
+    cooldown_seconds: 1800

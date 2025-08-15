@@ -1,0 +1,234 @@
+# Batch Processing Configuration
+# Controls how errors are batched together for efficient Claude API usage
+
+# General Batch Settings
+batch_settings:
+  # Enable batch processing
+  enabled: true
+  
+  # Default batch size
+  default_batch_size: 5
+  
+  # Maximum batch size
+  max_batch_size: 10
+  
+  # Minimum batch size (below this, send individually)
+  min_batch_size: 2
+  
+  # Batch timeout (seconds to wait for more items)
+  batch_timeout: 30
+  
+  # Maximum wait time for batching (seconds)
+  max_wait_time: 300
+
+# Priority-based Batching
+priority_batching:
+  # Critical errors - process immediately, don't batch
+  critical:
+    batch_enabled: false
+    max_wait_time: 0
+    
+  # High priority - small batches, short timeout
+  high:
+    batch_size: 3
+    batch_timeout: 15
+    max_wait_time: 60
+    
+  # Medium priority - normal batching
+  medium:
+    batch_size: 5
+    batch_timeout: 30
+    max_wait_time: 180
+    
+  # Low priority - large batches, longer timeout
+  low:
+    batch_size: 8
+    batch_timeout: 60
+    max_wait_time: 600
+
+# Service-based Batching Rules
+service_batching:
+  # Database errors - can be batched as they often relate
+  postgresql:
+    enable_batching: true
+    batch_size: 4
+    similarity_grouping: true
+    
+  # Web server errors - batch similar HTTP errors
+  nginx:
+    enable_batching: true
+    batch_size: 5
+    group_by_status_code: true
+    
+  # Cache errors - batch memory/connection issues
+  redis:
+    enable_batching: true
+    batch_size: 3
+    group_by_error_type: true
+    
+  # Application errors - more complex, smaller batches
+  odoo:
+    enable_batching: true
+    batch_size: 3
+    group_by_module: true
+
+# Intelligent Batching
+intelligent_batching:
+  # Enable AI-based similarity detection
+  enabled: true
+  
+  # Similarity threshold for grouping (0.0-1.0)
+  similarity_threshold: 0.7
+  
+  # Text similarity algorithm
+  similarity_algorithm: "cosine"  # Options: cosine, jaccard, levenshtein
+  
+  # Maximum context length for similarity comparison
+  max_context_length: 1000
+  
+  # Group by error patterns
+  pattern_grouping: true
+  
+  # Group by timestamps (errors within time window)
+  temporal_grouping:
+    enabled: true
+    time_window: 300  # 5 minutes
+  
+  # Group by client/service
+  client_grouping: true
+
+# Batch Optimization
+optimization:
+  # Compress batch context to save tokens
+  compress_context: true
+  
+  # Remove duplicate information in batches
+  deduplicate: true
+  
+  # Limit context per error in batch
+  max_context_per_error: 500
+  
+  # Use abbreviated prompts for batched requests
+  abbreviated_prompts: true
+  
+  # Estimate token usage before batching
+  token_estimation: true
+
+# Dynamic Batch Sizing
+dynamic_sizing:
+  # Adjust batch size based on current load
+  load_based: true
+  
+  # Increase batch size when queue is full
+  queue_pressure_scaling:
+    enabled: true
+    queue_threshold: 70  # % of queue full
+    size_multiplier: 1.5
+  
+  # Reduce batch size during token shortages
+  token_shortage_scaling:
+    enabled: true
+    shortage_threshold: 80  # % of tokens used
+    size_multiplier: 0.7
+  
+  # Time-based scaling
+  time_based_scaling:
+    enabled: true
+    peak_hours: ["09:00-12:00", "14:00-17:00"]
+    peak_multiplier: 0.8  # Smaller batches during peak
+    off_peak_multiplier: 1.3  # Larger batches off-peak
+
+# Batch Content Organization
+content_organization:
+  # Group similar errors together in batch
+  group_similar: true
+  
+  # Sort errors by severity within batch
+  sort_by_severity: true
+  
+  # Include error frequency in batch
+  include_frequency: true
+  
+  # Add batch summary header
+  include_summary: true
+  
+  # Cross-reference related errors
+  cross_reference: true
+
+# Batch Processing Strategies
+processing_strategies:
+  # Fast batch processing for simple errors
+  fast_track:
+    enabled: true
+    simple_error_patterns:
+      - "connection refused"
+      - "permission denied"
+      - "file not found"
+    max_batch_size: 10
+    
+  # Detailed processing for complex errors
+  detailed_track:
+    enabled: true
+    complex_error_patterns:
+      - "segmentation fault"
+      - "database corruption"
+      - "memory leak"
+    max_batch_size: 3
+
+# Quality Control
+quality_control:
+  # Validate batch composition before sending
+  validate_batches: true
+  
+  # Maximum diversity in batch (different error types)
+  max_error_type_diversity: 5
+  
+  # Minimum similarity for batching
+  min_similarity_score: 0.5
+  
+  # Reject batches that are too heterogeneous
+  reject_diverse_batches: true
+
+# Monitoring and Metrics
+monitoring:
+  # Track batch efficiency metrics
+  track_efficiency: true
+  
+  # Log batch composition details
+  log_batch_details: false  # Enable for debugging
+  
+  # Monitor token savings from batching
+  track_token_savings: true
+  
+  # Alert on poor batch performance
+  efficiency_alerts: true
+  min_efficiency_threshold: 60  # %
+
+# Fallback Behavior
+fallback:
+  # Disable batching under high load
+  disable_on_high_load: true
+  load_threshold: 85  # CPU %
+  
+  # Process individually if batching fails
+  individual_on_batch_failure: true
+  
+  # Maximum batch retry attempts
+  max_retry_attempts: 2
+  
+  # Fallback batch size reduction
+  size_reduction_factor: 0.5
+
+# Advanced Features
+advanced:
+  # Predictive batching based on patterns
+  predictive_batching: false  # Experimental
+  
+  # Machine learning for optimal batch sizing
+  ml_optimization: false  # Experimental
+  
+  # Adaptive batch timeout based on response times
+  adaptive_timeout: true
+  
+  # Cross-client batching (batch errors from multiple clients)
+  cross_client_batching: false  # Use with caution

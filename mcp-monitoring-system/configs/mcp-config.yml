@@ -1,0 +1,100 @@
+# Main MCP Server Configuration
+# This is the primary configuration file for the MCP Distributed Monitoring System
+
+# Claude API Configuration
+claude_api_key: "${CLAUDE_API_KEY}"  # Set via environment variable for security
+claude:
+  model: "claude-3-5-sonnet-20241022"
+  max_retries: 3
+  timeout: 300
+  base_delay: 1.0
+  max_delay: 60.0
+
+# Token Management Configuration
+token_limits:
+  max_tokens_per_minute: 40000
+  max_requests_per_minute: 50
+  cooldown_seconds: 60
+  cache_ttl_hours: 24
+  batch_size: 5
+  batch_timeout_seconds: 30
+
+# Queue Configuration
+queues:
+  max_size: 10000
+  max_retries: 3
+  pending_max_size: 5000
+  error_max_size: 3000
+  fix_max_size: 2000
+
+# Processing Configuration
+processing:
+  error_processors: 3
+  fix_executors: 2
+
+# SSH Connection Settings
+ssh_settings:
+  max_connections_per_client: 5
+  connection_idle_timeout: 300  # 5 minutes
+  health_check_interval: 60     # 1 minute
+  connection_timeout: 30
+  command_timeout: 300
+
+# Logging Configuration
+logging:
+  level: "INFO"
+  format: "json"
+  file_path: "/var/log/mcp/server.log"
+  max_file_size: "100MB"
+  backup_count: 5
+  console_output: true
+
+# Server Configuration
+server:
+  host: "0.0.0.0"
+  port: 8080
+  workers: 4
+  timeout: 300
+  keepalive: 60
+
+# Backup Configuration
+backup:
+  enabled: true
+  retention_days: 30
+  storage_path: "/var/backups/mcp"
+  compress: true
+
+# Security Settings
+security:
+  require_ssl: false
+  allowed_hosts: []
+  api_key_required: true
+  max_request_size: "10MB"
+
+# Monitoring & Health Checks
+monitoring:
+  health_check_interval: 30
+  metrics_enabled: true
+  prometheus_port: 9090
+  alert_on_queue_full: true
+  alert_on_consecutive_failures: 5
+
+# Notification Settings (for alerts)
+notifications:
+  enabled: true
+  channels:
+    - type: "log"
+      level: "ERROR"
+    # - type: "email"
+    #   smtp_server: "localhost"
+    #   recipients: ["admin@example.com"]
+    # - type: "webhook"
+    #   url: "https://hooks.slack.com/services/..."
+
+# Feature Flags
+features:
+  auto_fix_enabled: true
+  batch_processing: true
+  cache_responses: true
+  offline_mode: false
+  debug_mode: false

@@ -1,0 +1,294 @@
+# Odoo MCP Client Configuration
+
+# Client Identification
+client_id: "odoo-prod-01"
+service_type: "odoo"
+
+# Odoo Installation Settings
+odoo:
+  version: "16.0"  # Odoo version
+  edition: "community"  # community or enterprise
+  install_dir: "/opt/odoo"
+  config_file: "/etc/odoo/odoo.conf"
+  addons_path: "/opt/odoo/addons,/opt/odoo/custom-addons"
+
+# Database Configuration
+database:
+  host: "localhost"
+  port: 5432
+  name: "odoo"
+  user: "odoo"
+  password: "${ODOO_DB_PASSWORD}"  # Set via environment variable
+
+# Odoo Service Settings
+service:
+  user: "odoo"
+  group: "odoo"
+  home_dir: "/opt/odoo"
+  service_name: "odoo"
+
+# Log Monitoring
+log_paths:
+  - "/var/log/odoo/odoo.log"
+  - "/var/log/odoo/odoo-server.log"
+
+additional_log_paths:
+  - "/opt/odoo/logs/odoo.log"
+
+# Web Service Configuration
+web_service:
+  host: "0.0.0.0"
+  port: 8069
+  https_port: 443
+  workers: 4
+  max_cron_threads: 2
+  longpolling_port: 8072
+
+# Error Pattern Configuration
+error_patterns_file: "../error_patterns/odoo_patterns.yml"
+
+# Health Check Settings
+health_check_interval: 60  # seconds
+
+# Backup Configuration
+backup_enabled: true
+backup_dir: "/var/backups/odoo"
+backup_retention_days: 7
+
+# Filestore Configuration
+filestore:
+  path: "/opt/odoo/.local/share/Odoo/filestore"
+  backup_enabled: true
+  compression: true
+
+# Session Configuration
+sessions:
+  store: "db"  # db or filesystem
+  cleanup_interval: 3600  # seconds
+  max_inactive_time: 7200  # seconds
+
+# Performance Monitoring
+performance:
+  # Memory monitoring
+  memory_limit_soft: 2048   # MB per worker
+  memory_limit_hard: 2560   # MB per worker
+  
+  # CPU monitoring
+  cpu_time_limit: 300       # seconds per request
+  
+  # Database monitoring
+  db_timeout: 600           # seconds
+  db_max_connections: 64
+  
+  # Request monitoring
+  request_timeout: 300      # seconds
+  slow_request_threshold: 5 # seconds
+
+# Module Management
+modules:
+  auto_update: false
+  critical_modules:
+    - "base"
+    - "web"
+    - "mail"
+    - "crm"
+    - "sale"
+    - "purchase"
+    - "stock"
+    - "account"
+  
+  development_modules: []  # Modules only in dev environment
+  
+  module_update_timeout: 1800  # seconds
+
+# Scheduled Jobs (Cron)
+cron_jobs:
+  enabled: true
+  max_concurrent: 2
+  timeout: 300  # seconds
+  
+  # Critical cron jobs to monitor
+  critical_jobs:
+    - "ir.cron.check_session_validity"
+    - "mail.activity.digest"
+    - "base.ir.autovacuum"
+
+# Multi-database Configuration
+multi_db:
+  enabled: false
+  db_filter: null
+  list_db: false
+  databases: []
+
+# Security Settings
+security:
+  # Admin password
+  admin_passwd: "${ODOO_ADMIN_PASSWORD}"
+  
+  # Security headers
+  secure_cookies: true
+  session_cookie_secure: false
+  
+  # Access control
+  proxy_mode: false
+  trusted_proxies: []
+
+# Email Configuration
+email:
+  smtp_server: "localhost"
+  smtp_port: 25
+  smtp_user: null
+  smtp_password: null
+  smtp_ssl: false
+  
+  # Email monitoring
+  monitor_email_queue: true
+  email_queue_threshold: 100
+
+# Logging Configuration
+logging:
+  log_level: "info"  # debug, info, warn, error, critical
+  log_handler: ":INFO"
+  log_db: false
+  log_db_level: "warning"
+  
+  # Log rotation
+  logrotate: true
+  max_log_size: "100MB"
+  backup_count: 5
+
+# Development Settings (for dev environment)
+development:
+  debug_mode: false
+  reload: false
+  dev_mode: []  # xml, py, etc.
+  shell_interface: false
+
+# Clustering Settings (for multi-server setup)
+clustering:
+  enabled: false
+  longpolling: false
+  
+  # Load balancer configuration
+  load_balancer:
+    enabled: false
+    algorithm: "round_robin"  # round_robin, least_conn, ip_hash
+
+# Resource Limits
+resource_limits:
+  # File upload limits
+  max_file_upload_size: "100MB"
+  
+  # Report generation limits
+  report_timeout: 300
+  
+  # Import/export limits
+  import_batch_size: 1000
+  export_batch_size: 1000
+
+# Cache Configuration
+cache:
+  # Template cache
+  template_cache: true
+  
+  # Asset cache
+  asset_cache: true
+  
+  # ORM cache
+  orm_cache_size: 100000
+
+# Integration Settings
+integrations:
+  # External API monitoring
+  api_monitoring: true
+  
+  # Third-party service monitoring
+  third_party_services: []
+
+# Monitoring and Alerts
+alerts:
+  # Performance alerts
+  response_time_threshold: 10    # seconds
+  memory_usage_threshold: 80     # %
+  cpu_usage_threshold: 80        # %
+  
+  # Database alerts
+  db_connection_threshold: 80    # % of max connections
+  db_lock_timeout_threshold: 60  # seconds
+  
+  # Service alerts
+  worker_death_threshold: 3      # dead workers
+  cron_failure_threshold: 5      # failed cron jobs
+  
+  # Business alerts
+  failed_login_threshold: 100    # per hour
+  email_queue_threshold: 1000
+
+# Custom Commands
+custom_commands:
+  restart: "systemctl restart odoo"
+  stop: "systemctl stop odoo"
+  start: "systemctl start odoo"
+  status: "systemctl status odoo"
+  
+  # Odoo-specific commands
+  update_modules: "/opt/odoo/odoo-bin -u all -d {database} --stop-after-init"
+  install_module: "/opt/odoo/odoo-bin -i {module} -d {database} --stop-after-init"
+  shell: "/opt/odoo/odoo-bin shell -d {database}"
+
+# Docker Configuration (if running in Docker)
+docker_enabled: false
+docker_container_name: "odoo"
+docker_image: "odoo:16.0"
+
+# Environment-specific Settings
+environment: "production"  # production, staging, development
+
+# Backup Strategy
+backup_strategy:
+  # Database backup
+  db_backup_enabled: true
+  db_backup_format: "pg_dump"  # pg_dump, custom
+  db_backup_compression: true
+  
+  # Filestore backup
+  filestore_backup_enabled: true
+  filestore_backup_compression: true
+  
+  # Configuration backup
+  config_backup_enabled: true
+
+# Update and Maintenance
+maintenance:
+  # Automatic updates
+  auto_update_enabled: false
+  update_check_interval: 86400  # seconds (daily)
+  
+  # Database maintenance
+  auto_vacuum: true
+  vacuum_schedule: "0 2 * * 0"  # Weekly on Sunday at 2 AM
+  
+  # Log cleanup
+  log_cleanup_enabled: true
+  log_retention_days: 30
+
+# Compliance and Audit
+compliance:
+  # Audit logging
+  audit_enabled: false
+  audit_log_path: "/var/log/odoo/audit.log"
+  
+  # Data retention
+  data_retention_enabled: false
+  default_retention_period: 2555  # days (7 years)
+
+# High Availability
+high_availability:
+  # Master-slave configuration
+  master_slave: false
+  
+  # Database clustering
+  db_clustering: false
+  
+  # Session storage
+  shared_session_store: false

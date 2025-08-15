@@ -1,0 +1,354 @@
+# Odoo Error Patterns for MCP System
+
+patterns:
+  # Critical application errors
+  - name: "odoo_server_crashed"
+    pattern: "server crashed|segmentation fault|fatal error|process died"
+    severity: 1
+    service_type: "odoo"
+    description: "Odoo server crashed"
+    auto_fix: true
+    cooldown_seconds: 300
+
+  - name: "odoo_database_connection_failed"
+    pattern: "database connection failed|could not connect.*database|psycopg2.*OperationalError"
+    severity: 1
+    service_type: "odoo"
+    description: "Database connection failure"
+    auto_fix: true
+    cooldown_seconds: 300
+
+  - name: "odoo_out_of_memory"
+    pattern: "out of memory|memory error|MemoryError|worker.*memory.*exceeded"
+    severity: 1
+    service_type: "odoo"
+    description: "Odoo out of memory"
+    auto_fix: true
+    cooldown_seconds: 300
+
+  - name: "odoo_disk_full"
+    pattern: "no space left|disk full|IOError.*space"
+    severity: 1
+    service_type: "odoo"
+    description: "Disk space exhausted"
+    auto_fix: false
+    cooldown_seconds: 600
+
+  # Database errors
+  - name: "odoo_database_lock"
+    pattern: "database.*lock|deadlock detected|lock.*timeout|database is locked"
+    severity: 2
+    service_type: "odoo"
+    description: "Database lock or deadlock"
+    auto_fix: true
+    cooldown_seconds: 180
+
+  - name: "odoo_database_constraint_violation"
+    pattern: "constraint.*violation|integrity.*error|unique.*violation|foreign key.*violation"
+    severity: 2
+    service_type: "odoo"
+    description: "Database constraint violation"
+    auto_fix: false
+    cooldown_seconds: 600
+
+  - name: "odoo_migration_failed"
+    pattern: "migration.*failed|upgrade.*failed|database.*upgrade.*error"
+    severity: 1
+    service_type: "odoo"
+    description: "Database migration failed"
+    auto_fix: false
+    cooldown_seconds: 1800
+
+  - name: "odoo_transaction_rollback"
+    pattern: "transaction.*rollback|rollback.*error|transaction.*aborted"
+    severity: 3
+    service_type: "odoo"
+    description: "Transaction rollback occurred"
+    auto_fix: false
+    cooldown_seconds: 600
+
+  # Module and addon errors
+  - name: "odoo_module_import_error"
+    pattern: "ImportError.*module|ModuleNotFoundError|cannot import.*module"
+    severity: 2
+    service_type: "odoo"
+    description: "Module import error"
+    auto_fix: true
+    cooldown_seconds: 600
+
+  - name: "odoo_addon_not_found"
+    pattern: "addon.*not found|module.*not installable|No module named"
+    severity: 2
+    service_type: "odoo"
+    description: "Addon or module not found"
+    auto_fix: false
+    cooldown_seconds: 1800
+
+  - name: "odoo_module_dependency_error"
+    pattern: "dependency.*not satisfied|missing.*dependency|depends on.*not installed"
+    severity: 2
+    service_type: "odoo"
+    description: "Module dependency error"
+    auto_fix: true
+    cooldown_seconds: 1800
+
+  - name: "odoo_module_upgrade_failed"
+    pattern: "module.*upgrade.*failed|update.*module.*error|module.*installation.*failed"
+    severity: 2
+    service_type: "odoo"
+    description: "Module upgrade or installation failed"
+    auto_fix: true
+    cooldown_seconds: 1800
+
+  # Web server and HTTP errors
+  - name: "odoo_http_500_error"
+    pattern: "Internal Server Error|HTTP.*500|server error"
+    severity: 2
+    service_type: "odoo"
+    description: "HTTP 500 internal server error"
+    auto_fix: false
+    cooldown_seconds: 300
+
+  - name: "odoo_worker_timeout"
+    pattern: "worker.*timeout|request.*timeout|worker.*killed.*timeout"
+    severity: 2
+    service_type: "odoo"
+    description: "Worker process timeout"
+    auto_fix: true
+    cooldown_seconds: 300
+
+  - name: "odoo_worker_died"
+    pattern: "worker.*died|worker.*crashed|worker process.*exited"
+    severity: 2
+    service_type: "odoo"
+    description: "Worker process died"
+    auto_fix: true
+    cooldown_seconds: 300
+
+  - name: "odoo_session_error"
+    pattern: "session.*error|session.*expired|invalid.*session"
+    severity: 3
+    service_type: "odoo"
+    description: "Session management error"
+    auto_fix: false
+    cooldown_seconds: 600
+
+  # Authentication and security
+  - name: "odoo_login_failed"
+    pattern: "login.*failed|authentication.*failed|invalid.*credentials"
+    severity: 3
+    service_type: "odoo"
+    description: "Login authentication failed"
+    auto_fix: false
+    cooldown_seconds: 600
+
+  - name: "odoo_permission_denied"
+    pattern: "permission denied|access denied|insufficient.*privileges"
+    severity: 3
+    service_type: "odoo"
+    description: "Permission or access denied"
+    auto_fix: false
+    cooldown_seconds: 1800
+
+  - name: "odoo_security_error"
+    pattern: "security.*error|access.*forbidden|unauthorized.*access"
+    severity: 2
+    service_type: "odoo"
+    description: "Security violation"
+    auto_fix: false
+    cooldown_seconds: 600
+
+  # Email and communication errors
+  - name: "odoo_email_failed"
+    pattern: "email.*failed|smtp.*error|mail.*delivery.*failed"
+    severity: 3
+    service_type: "odoo"
+    description: "Email sending failed"
+    auto_fix: false
+    cooldown_seconds: 900
+
+  - name: "odoo_email_queue_full"
+    pattern: "email.*queue.*full|mail.*queue.*exceeded|too many.*emails"
+    severity: 3
+    service_type: "odoo"
+    description: "Email queue full or exceeded"
+    auto_fix: true
+    cooldown_seconds: 600
+
+  # File and attachment errors
+  - name: "odoo_file_not_found"
+    pattern: "file not found|FileNotFoundError|attachment.*not found"
+    severity: 3
+    service_type: "odoo"
+    description: "File or attachment not found"
+    auto_fix: false
+    cooldown_seconds: 1800
+
+  - name: "odoo_file_upload_error"
+    pattern: "file upload.*failed|upload.*error|attachment.*upload.*error"
+    severity: 3
+    service_type: "odoo"
+    description: "File upload error"
+    auto_fix: false
+    cooldown_seconds: 600
+
+  - name: "odoo_filestore_error"
+    pattern: "filestore.*error|attachment.*store.*error|file.*storage.*error"
+    severity: 2
+    service_type: "odoo"
+    description: "Filestore operation error"
+    auto_fix: false
+    cooldown_seconds: 600
+
+  # Cron job and scheduled task errors
+  - name: "odoo_cron_failed"
+    pattern: "cron.*failed|scheduled.*task.*failed|ir\\.cron.*error"
+    severity: 3
+    service_type: "odoo"
+    description: "Cron job or scheduled task failed"
+    auto_fix: true
+    cooldown_seconds: 900
+
+  - name: "odoo_cron_timeout"
+    pattern: "cron.*timeout|scheduled.*task.*timeout|cron.*killed.*timeout"
+    severity: 3
+    service_type: "odoo"
+    description: "Cron job timeout"
+    auto_fix: true
+    cooldown_seconds: 900
+
+  # Report generation errors
+  - name: "odoo_report_generation_failed"
+    pattern: "report.*generation.*failed|pdf.*generation.*error|report.*error"
+    severity: 3
+    service_type: "odoo"
+    description: "Report generation failed"
+    auto_fix: false
+    cooldown_seconds: 900
+
+  - name: "odoo_wkhtmltopdf_error"
+    pattern: "wkhtmltopdf.*error|pdf.*rendering.*failed|wkhtmltopdf.*not found"
+    severity: 3
+    service_type: "odoo"
+    description: "PDF generation tool error"
+    auto_fix: false
+    cooldown_seconds: 1800
+
+  # API and integration errors
+  - name: "odoo_api_error"
+    pattern: "api.*error|xmlrpc.*error|json.*rpc.*error|web service.*error"
+    severity: 3
+    service_type: "odoo"
+    description: "API or web service error"
+    auto_fix: false
+    cooldown_seconds: 600
+
+  - name: "odoo_webhook_failed"
+    pattern: "webhook.*failed|webhook.*timeout|webhook.*error"
+    severity: 3
+    service_type: "odoo"
+    description: "Webhook delivery failed"
+    auto_fix: false
+    cooldown_seconds: 900
+
+  # Configuration and startup errors
+  - name: "odoo_config_error"
+    pattern: "configuration.*error|config.*file.*error|invalid.*configuration"
+    severity: 2
+    service_type: "odoo"
+    description: "Configuration error"
+    auto_fix: false
+    cooldown_seconds: 1800
+
+  - name: "odoo_startup_failed"
+    pattern: "startup.*failed|server.*start.*failed|initialization.*failed"
+    severity: 1
+    service_type: "odoo"
+    description: "Odoo startup failed"
+    auto_fix: true
+    cooldown_seconds: 600
+
+  - name: "odoo_port_already_in_use"
+    pattern: "port.*already in use|address already in use|bind.*failed.*address"
+    severity: 2
+    service_type: "odoo"
+    description: "Port already in use"
+    auto_fix: true
+    cooldown_seconds: 300
+
+  # Performance issues
+  - name: "odoo_performance_slow"
+    pattern: "slow.*query|performance.*degraded|response.*time.*high"
+    severity: 3
+    service_type: "odoo"
+    description: "Performance degradation detected"
+    auto_fix: false
+    cooldown_seconds: 1800
+
+  - name: "odoo_memory_leak"
+    pattern: "memory.*leak|memory.*usage.*increasing|memory.*not.*freed"
+    severity: 2
+    service_type: "odoo"
+    description: "Memory leak detected"
+    auto_fix: true
+    cooldown_seconds: 1800
+
+  # Template and view errors
+  - name: "odoo_template_error"
+    pattern: "template.*error|view.*error|qweb.*error|template.*not found"
+    severity: 3
+    service_type: "odoo"
+    description: "Template or view error"
+    auto_fix: false
+    cooldown_seconds: 1800
+
+  - name: "odoo_javascript_error"
+    pattern: "javascript.*error|js.*error|client.*side.*error"
+    severity: 3
+    service_type: "odoo"
+    description: "JavaScript client-side error"
+    auto_fix: false
+    cooldown_seconds: 1800
+
+  # Localization and translation errors
+  - name: "odoo_translation_error"
+    pattern: "translation.*error|language.*not found|locale.*error"
+    severity: 3
+    service_type: "odoo"
+    description: "Translation or localization error"
+    auto_fix: false
+    cooldown_seconds: 1800
+
+  # Backup and maintenance errors
+  - name: "odoo_backup_failed"
+    pattern: "backup.*failed|database.*dump.*failed|backup.*error"
+    severity: 2
+    service_type: "odoo"
+    description: "Backup operation failed"
+    auto_fix: false
+    cooldown_seconds: 1800
+
+  - name: "odoo_vacuum_failed"
+    pattern: "vacuum.*failed|cleanup.*failed|maintenance.*error"
+    severity: 3
+    service_type: "odoo"
+    description: "Database maintenance failed"
+    auto_fix: true
+    cooldown_seconds: 1800
+
+  # External service integration errors
+  - name: "odoo_payment_gateway_error"
+    pattern: "payment.*gateway.*error|payment.*failed|transaction.*error"
+    severity: 2
+    service_type: "odoo"
+    description: "Payment gateway integration error"
+    auto_fix: false
+    cooldown_seconds: 600
+
+  - name: "odoo_external_api_timeout"
+    pattern: "external.*api.*timeout|third.*party.*timeout|external.*service.*unreachable"
+    severity: 3
+    service_type: "odoo"
+    description: "External API timeout"
+    auto_fix: false
+    cooldown_seconds: 600

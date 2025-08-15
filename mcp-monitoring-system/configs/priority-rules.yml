@@ -1,0 +1,219 @@
+# Priority Rules Configuration
+# Defines how errors are prioritized and processed in the MCP system
+
+# Priority Levels (1=Critical, 2=High, 3=Medium, 4=Low)
+priority_levels:
+  critical: 1
+  high: 2
+  medium: 3
+  low: 4
+
+# Service-based Priority Rules
+service_priorities:
+  # Database services get higher priority
+  postgresql:
+    base_priority: 2
+    error_patterns:
+      - pattern: "database.*down|connection.*refused|could not connect"
+        priority: 1
+        description: "Database connection failures"
+      - pattern: "deadlock|lock.*timeout|transaction.*aborted"
+        priority: 2
+        description: "Database locking issues"
+      - pattern: "disk.*full|no space left"
+        priority: 1
+        description: "Storage issues"
+      - pattern: "memory.*error|out of memory"
+        priority: 2
+        description: "Memory issues"
+
+  # Web server issues
+  nginx:
+    base_priority: 3
+    error_patterns:
+      - pattern: "502|503|504|gateway.*timeout"
+        priority: 2
+        description: "HTTP server errors"
+      - pattern: "worker.*died|segmentation fault"
+        priority: 1
+        description: "Worker process crashes"
+      - pattern: "permission denied|access forbidden"
+        priority: 3
+        description: "Permission issues"
+      - pattern: "too many open files"
+        priority: 2
+        description: "Resource limits"
+
+  # Cache server issues
+  redis:
+    base_priority: 3
+    error_patterns:
+      - pattern: "connection.*refused|could not connect"
+        priority: 2
+        description: "Redis connection issues"
+      - pattern: "memory.*usage|oom|out of memory"
+        priority: 2
+        description: "Memory issues"
+      - pattern: "disk.*full|no space"
+        priority: 1
+        description: "Storage issues"
+      - pattern: "cluster.*down|node.*unreachable"
+        priority: 1
+        description: "Cluster issues"
+
+  # Application server issues
+  odoo:
+    base_priority: 3
+    error_patterns:
+      - pattern: "database.*lock|deadlock"
+        priority: 2
+        description: "Database locking in Odoo"
+      - pattern: "module.*error|addon.*failed"
+        priority: 3
+        description: "Module loading issues"
+      - pattern: "memory.*error|worker.*timeout"
+        priority: 2
+        description: "Performance issues"
+      - pattern: "login.*failed|session.*expired"
+        priority: 3
+        description: "Authentication issues"
+
+# Time-based Priority Adjustments
+temporal_rules:
+  # Business hours (higher priority during business hours)
+  business_hours:
+    enabled: true
+    timezone: "UTC"
+    start_time: "08:00"
+    end_time: "18:00"
+    weekdays_only: true
+    priority_boost: 1  # Increase priority by 1 level
+
+  # Weekend rules (lower priority on weekends)
+  weekend_rules:
+    enabled: true
+    priority_reduction: 1  # Decrease priority by 1 level
+    except_critical: true  # Don't reduce critical priority
+
+  # Holiday rules
+  holiday_rules:
+    enabled: false
+    holidays_file: "/etc/mcp/holidays.yml"
+    priority_reduction: 1
+
+# Frequency-based Priority Adjustments
+frequency_rules:
+  # Repeated errors get lower priority
+  repeated_errors:
+    enabled: true
+    threshold_count: 5    # Same error 5+ times
+    time_window: 3600     # Within 1 hour
+    priority_reduction: 1
+    
+  # Escalate if not fixed
+  escalation:
+    enabled: true
+    time_thresholds:
+      - minutes: 30
+        priority_boost: 0
+      - minutes: 60
+        priority_boost: 1
+      - minutes: 120
+        priority_boost: 2
+
+# Client-based Priority Rules
+client_priorities:
+  # Production clients get higher priority
+  production:
+    environments: ["prod", "production"]
+    priority_boost: 1
+    
+  # Development clients get lower priority
+  development:
+    environments: ["dev", "development", "test", "staging"]
+    priority_reduction: 1
+    
+  # Critical clients (by name/tag)
+  critical_clients:
+    clients: []  # Add specific client IDs
+    priority_boost: 2
+
+# Impact-based Priority Rules
+impact_assessment:
+  # Multi-service impact
+  cascading_failures:
+    enabled: true
+    detection_window: 300  # 5 minutes
+    affected_services_threshold: 2
+    priority_boost: 2
+
+  # User impact estimation
+  user_impact:
+    enabled: true
+    high_traffic_hours:
+      start: "08:00"
+      end: "22:00"
+    priority_boost: 1
+
+# Resource Availability Rules
+resource_constraints:
+  # Limit high-priority processing during maintenance
+  maintenance_mode:
+    enabled: false
+    reduce_all_priority: 1
+    except_critical: true
+    
+  # Token conservation
+  token_shortage:
+    enabled: true
+    shortage_threshold: 80  # When 80% tokens used
+    priority_threshold: 2   # Only process priority 1-2
+    
+  # System load considerations
+  high_load:
+    enabled: true
+    cpu_threshold: 80       # CPU usage %
+    memory_threshold: 85    # Memory usage %
+    priority_threshold: 2   # Only high priority when loaded
+
+# Custom Priority Overrides
+overrides:
+  # Specific error patterns that override all rules
+  always_critical:
+    - "security.*breach|intrusion.*detected"
+    - "data.*corruption|filesystem.*error"
+    - "kernel.*panic|system.*crash"
+    
+  always_low:
+    - "info.*message|debug.*output"
+    - "cleanup.*completed|backup.*finished"
+    - "user.*logout|session.*closed"
+
+# Processing Queue Limits
+queue_limits:
+  critical:
+    max_size: 1000
+    processing_timeout: 60
+    
+  high:
+    max_size: 2000
+    processing_timeout: 300
+    
+  medium:
+    max_size: 5000
+    processing_timeout: 600
+    
+  low:
+    max_size: 10000
+    processing_timeout: 1800
+
+# Priority Change Notifications
+notifications:
+  # Notify on priority changes
+  priority_changes: true
+  
+  # Notify on escalations
+  escalations: true
+  
+  # Notify on critical queue full
+  critical_queue_full: true

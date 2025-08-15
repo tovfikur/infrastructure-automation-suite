@@ -1,0 +1,99 @@
+# Nginx MCP Client Configuration
+
+# Client Identification
+client_id: "nginx-prod-01"
+service_type: "nginx"
+
+# Nginx-specific Settings
+nginx_config_path: "/etc/nginx/nginx.conf"
+nginx_sites_path: "/etc/nginx/sites-enabled"
+nginx_pid_file: "/var/run/nginx.pid"
+
+# Log Monitoring
+log_paths:
+  - "/var/log/nginx/error.log"
+  - "/var/log/nginx/access.log"
+error_log_path: "/var/log/nginx/error.log"
+access_log_path: "/var/log/nginx/access.log"
+
+# Additional log paths (if needed)
+additional_log_paths: []
+
+# Monitor access log for errors (optional)
+monitor_access_log: false
+
+# Service Configuration
+service_name: "nginx"
+
+# Error Pattern Configuration
+error_patterns_file: "../error_patterns/nginx_patterns.yml"
+
+# Health Check Settings
+health_check_interval: 60  # seconds
+
+# Backup Configuration
+backup_enabled: true
+backup_dir: "/var/backups/nginx"
+
+# Cache Configuration (if using proxy cache)
+cache_paths:
+  - "/var/cache/nginx"
+  - "/tmp/nginx"
+
+# Fix Application Settings
+fail_fast: true  # Stop on first failed command
+
+# SSL/TLS Configuration (if applicable)
+ssl_cert_paths:
+  - "/etc/ssl/certs"
+  - "/etc/nginx/ssl"
+
+# Performance Monitoring
+performance_monitoring:
+  enabled: true
+  check_worker_processes: true
+  check_connections: true
+  check_memory_usage: true
+
+# Rate Limiting Settings
+rate_limiting:
+  enabled: false  # Set to true if using nginx rate limiting
+  check_rate_limit_logs: false
+
+# Docker Configuration (if running in Docker)
+docker_enabled: false
+docker_container_name: "nginx"
+docker_image: "nginx:latest"
+
+# Custom Commands
+custom_commands:
+  reload: "systemctl reload nginx"
+  restart: "systemctl restart nginx"
+  status: "systemctl status nginx"
+  test_config: "nginx -t"
+
+# Environment-specific Settings
+environment: "production"  # production, staging, development
+
+# Notification Settings
+notifications:
+  enabled: true
+  severity_threshold: 2  # Only notify for critical and high severity
+
+# Resource Limits Monitoring
+resource_monitoring:
+  max_memory_usage: 512   # MB
+  max_cpu_usage: 70       # %
+  max_open_files: 4096
+
+# Security Monitoring
+security:
+  monitor_failed_requests: true
+  monitor_dos_attacks: true
+  check_suspicious_ips: false
+
+# Load Balancing (if applicable)
+load_balancing:
+  enabled: false
+  upstream_servers: []
+  health_check_endpoints: []

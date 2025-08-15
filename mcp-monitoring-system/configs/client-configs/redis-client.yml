@@ -1,0 +1,246 @@
+# Redis MCP Client Configuration
+
+# Client Identification
+client_id: "redis-prod-01"
+service_type: "redis"
+
+# Redis Connection Settings
+redis:
+  host: "localhost"
+  port: 6379
+  password: "${REDIS_PASSWORD}"  # Set via environment variable
+  database: 0
+  socket_timeout: 30
+  socket_connect_timeout: 30
+
+# Redis File Paths
+config_file: "/etc/redis/redis.conf"
+data_directory: "/var/lib/redis"
+log_file: "/var/log/redis/redis-server.log"
+pid_file: "/var/run/redis/redis-server.pid"
+
+# Log Monitoring
+log_paths:
+  - "/var/log/redis/redis-server.log"
+  - "/var/log/redis/redis.log"
+
+additional_log_paths: []
+
+# Service Configuration
+service_name: "redis-server"
+
+# Error Pattern Configuration
+error_patterns_file: "../error_patterns/redis_patterns.yml"
+
+# Health Check Settings
+health_check_interval: 60  # seconds
+
+# Backup Configuration
+backup_enabled: true
+backup_dir: "/var/backups/redis"
+backup_retention_days: 7
+
+# Redis-specific Monitoring
+monitoring:
+  # Memory monitoring
+  memory_usage_threshold: 80      # % of maxmemory
+  memory_fragmentation_threshold: 1.5  # ratio
+  
+  # Connection monitoring
+  max_clients_threshold: 80       # % of maxclients
+  connected_clients_threshold: 100
+  
+  # Performance monitoring
+  ops_per_sec_threshold: 10000
+  slow_log_threshold: 10000       # microseconds
+  
+  # Persistence monitoring
+  last_save_time_threshold: 3600  # seconds since last save
+  aof_rewrite_threshold: 100      # % growth before rewrite
+
+# Redis Configuration Settings
+redis_config:
+  # Memory management
+  maxmemory: "2gb"
+  maxmemory_policy: "allkeys-lru"
+  
+  # Persistence
+  save_intervals:
+    - "900 1"    # Save if at least 1 key changed in 900 seconds
+    - "300 10"   # Save if at least 10 keys changed in 300 seconds
+    - "60 10000" # Save if at least 10000 keys changed in 60 seconds
+  
+  # AOF (Append Only File)
+  appendonly: true
+  appendfsync: "everysec"
+  
+  # Network
+  timeout: 300
+  tcp_keepalive: 300
+  
+  # Logging
+  loglevel: "notice"
+  
+  # Security
+  protected_mode: true
+
+# Cluster Configuration (if using Redis Cluster)
+cluster:
+  enabled: false
+  nodes:
+    - host: "localhost"
+      port: 7000
+    - host: "localhost" 
+      port: 7001
+    - host: "localhost"
+      port: 7002
+  min_replicas: 1
+
+# Replication Configuration (if using Master-Slave)
+replication:
+  enabled: false
+  role: "master"  # master or slave
+  master_host: null
+  master_port: null
+  master_auth: null
+
+# Sentinel Configuration (if using Redis Sentinel)
+sentinel:
+  enabled: false
+  sentinels:
+    - host: "localhost"
+      port: 26379
+  master_name: "mymaster"
+  password: null
+
+# Performance Tuning
+performance:
+  # Client output buffer limits
+  client_output_buffer_limit: "256mb"
+  
+  # Hash optimization
+  hash_max_ziplist_entries: 512
+  hash_max_ziplist_value: 64
+  
+  # List optimization  
+  list_max_ziplist_size: -2
+  list_compress_depth: 0
+  
+  # Set optimization
+  set_max_intset_entries: 512
+  
+  # Sorted set optimization
+  zset_max_ziplist_entries: 128
+  zset_max_ziplist_value: 64
+
+# Maintenance Settings
+maintenance:
+  # Background saving
+  stop_writes_on_bgsave_error: true
+  rdbcompression: true
+  rdbchecksum: true
+  
+  # Client management
+  client_idle_timeout: 300
+  
+  # Memory defragmentation (Redis 4.0+)
+  activedefrag: false
+  active_defrag_ignore_bytes: "100mb"
+  active_defrag_threshold_lower: 10
+
+# Security Settings
+security:
+  # Authentication
+  requirepass: true
+  
+  # Command renaming (for security)
+  renamed_commands:
+    FLUSHDB: "FLUSH_DB_RENAMED"
+    FLUSHALL: "FLUSH_ALL_RENAMED"
+    CONFIG: "CONFIG_RENAMED"
+    DEBUG: ""  # Disable completely
+  
+  # Protected mode
+  protected_mode: true
+  bind_addresses: ["127.0.0.1"]
+
+# Module Configuration (if using Redis modules)
+modules:
+  enabled: false
+  loaded_modules: []
+  # Example modules:
+  # - name: "RedisJSON"
+  #   path: "/usr/lib/redis/modules/rejson.so"
+  # - name: "RediSearch"
+  #   path: "/usr/lib/redis/modules/redisearch.so"
+
+# Monitoring and Alerting
+alerts:
+  # Memory alerts
+  memory_usage_critical: 90      # %
+  memory_fragmentation_critical: 2.0
+  
+  # Connection alerts
+  connection_usage_critical: 90   # %
+  rejected_connections_threshold: 10
+  
+  # Performance alerts
+  slow_queries_threshold: 100     # per minute
+  blocked_clients_threshold: 10
+  
+  # Persistence alerts
+  rdb_last_save_age_critical: 7200  # seconds
+  aof_rewrite_time_critical: 3600   # seconds
+
+# Docker Configuration (if running in Docker)
+docker_enabled: false
+docker_container_name: "redis"
+docker_image: "redis:latest"
+
+# Environment-specific Settings
+environment: "production"  # production, staging, development
+
+# Custom Commands
+custom_commands:
+  restart: "systemctl restart redis-server"
+  stop: "systemctl stop redis-server"
+  start: "systemctl start redis-server"
+  status: "systemctl status redis-server"
+  flush_db: "redis-cli FLUSHDB"
+  flush_all: "redis-cli FLUSHALL"
+  info: "redis-cli INFO"
+  config_get: "redis-cli CONFIG GET"
+  config_set: "redis-cli CONFIG SET"
+
+# High Availability Settings
+high_availability:
+  # Automatic failover
+  auto_failover: false
+  failover_timeout: 60000  # milliseconds
+  
+  # Health checks for HA
+  health_check_interval: 10  # seconds
+  health_check_timeout: 5    # seconds
+  max_health_check_failures: 3
+
+# Data Management
+data_management:
+  # Key expiration monitoring
+  monitor_expired_keys: true
+  
+  # Database size monitoring
+  monitor_db_sizes: true
+  
+  # Memory analysis
+  memory_analysis_enabled: true
+  sample_size: 100000
+
+# Integration Settings
+integration:
+  # Prometheus monitoring (if enabled)
+  prometheus_exporter: false
+  prometheus_port: 9121
+  
+  # Logging integration
+  json_logging: false
+  syslog: false

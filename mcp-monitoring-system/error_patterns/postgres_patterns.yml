@@ -1,0 +1,297 @@
+# PostgreSQL Error Patterns for MCP System
+
+patterns:
+  # Critical database errors
+  - name: "postgres_startup_failed"
+    pattern: "database system startup failed|FATAL:.*could not start server"
+    severity: 1
+    service_type: "postgresql"
+    description: "PostgreSQL startup failure"
+    auto_fix: true
+    cooldown_seconds: 300
+
+  - name: "postgres_corruption_detected"
+    pattern: "invalid page header|corrupt|data corruption|checksum mismatch"
+    severity: 1
+    service_type: "postgresql"
+    description: "Database corruption detected"
+    auto_fix: false
+    cooldown_seconds: 600
+
+  - name: "postgres_out_of_memory"
+    pattern: "out of memory|memory exhausted|cannot allocate memory"
+    severity: 1
+    service_type: "postgresql"
+    description: "PostgreSQL out of memory"
+    auto_fix: false
+    cooldown_seconds: 300
+
+  - name: "postgres_disk_full"
+    pattern: "No space left on device|could not write.*disk full"
+    severity: 1
+    service_type: "postgresql"
+    description: "Disk space exhausted"
+    auto_fix: false
+    cooldown_seconds: 600
+
+  # Connection issues
+  - name: "postgres_connection_refused"
+    pattern: "connection refused|could not connect|server closed the connection"
+    severity: 2
+    service_type: "postgresql"
+    description: "Connection refused"
+    auto_fix: true
+    cooldown_seconds: 300
+
+  - name: "postgres_too_many_connections"
+    pattern: "too many connections|remaining connection slots are reserved"
+    severity: 2
+    service_type: "postgresql"
+    description: "Connection limit exceeded"
+    auto_fix: true
+    cooldown_seconds: 300
+
+  - name: "postgres_connection_timeout"
+    pattern: "connection timed out|timeout expired"
+    severity: 2
+    service_type: "postgresql"
+    description: "Connection timeout"
+    auto_fix: false
+    cooldown_seconds: 300
+
+  # Lock and deadlock issues
+  - name: "postgres_deadlock_detected"
+    pattern: "deadlock detected|Process.*waits for.*Process.*waits for"
+    severity: 2
+    service_type: "postgresql"
+    description: "Database deadlock detected"
+    auto_fix: true
+    cooldown_seconds: 180
+
+  - name: "postgres_lock_timeout"
+    pattern: "lock timeout|canceling statement due to lock timeout"
+    severity: 2
+    service_type: "postgresql"
+    description: "Lock timeout occurred"
+    auto_fix: true
+    cooldown_seconds: 300
+
+  - name: "postgres_lock_wait_timeout"
+    pattern: "lock wait timeout exceeded"
+    severity: 3
+    service_type: "postgresql"
+    description: "Lock wait timeout"
+    auto_fix: true
+    cooldown_seconds: 300
+
+  # Authentication and authorization
+  - name: "postgres_auth_failed"
+    pattern: "authentication failed|password authentication failed|FATAL:.*role.*does not exist"
+    severity: 2
+    service_type: "postgresql"
+    description: "Authentication failure"
+    auto_fix: false
+    cooldown_seconds: 600
+
+  - name: "postgres_permission_denied"
+    pattern: "permission denied|must be owner of|insufficient privilege"
+    severity: 3
+    service_type: "postgresql"
+    description: "Permission denied"
+    auto_fix: false
+    cooldown_seconds: 600
+
+  # Query execution errors
+  - name: "postgres_statement_timeout"
+    pattern: "canceling statement due to statement timeout"
+    severity: 3
+    service_type: "postgresql"
+    description: "Statement execution timeout"
+    auto_fix: true
+    cooldown_seconds: 300
+
+  - name: "postgres_syntax_error"
+    pattern: "syntax error|ERROR:.*at character"
+    severity: 3
+    service_type: "postgresql"
+    description: "SQL syntax error"
+    auto_fix: false
+    cooldown_seconds: 1800
+
+  - name: "postgres_division_by_zero"
+    pattern: "division by zero|ERROR:.*division by zero"
+    severity: 3
+    service_type: "postgresql"
+    description: "Division by zero error"
+    auto_fix: false
+    cooldown_seconds: 1800
+
+  # WAL and transaction log errors
+  - name: "postgres_wal_error"
+    pattern: "WAL.*error|could not write to.*WAL|xlog.*error"
+    severity: 1
+    service_type: "postgresql"
+    description: "WAL (Write-Ahead Log) error"
+    auto_fix: false
+    cooldown_seconds: 300
+
+  - name: "postgres_checkpoint_failed"
+    pattern: "checkpoint.*failed|could not create checkpoint"
+    severity: 2
+    service_type: "postgresql"
+    description: "Checkpoint creation failed"
+    auto_fix: true
+    cooldown_seconds: 600
+
+  - name: "postgres_archive_failed"
+    pattern: "archive command failed|could not archive"
+    severity: 2
+    service_type: "postgresql"
+    description: "WAL archiving failed"
+    auto_fix: false
+    cooldown_seconds: 600
+
+  # Replication errors
+  - name: "postgres_replication_lag"
+    pattern: "replication.*lag|standby.*behind|replication slot.*inactive"
+    severity: 2
+    service_type: "postgresql"
+    description: "Replication lag detected"
+    auto_fix: false
+    cooldown_seconds: 600
+
+  - name: "postgres_replication_broken"
+    pattern: "replication.*broken|streaming replication.*disconnected"
+    severity: 1
+    service_type: "postgresql"
+    description: "Replication connection broken"
+    auto_fix: false
+    cooldown_seconds: 300
+
+  # Performance issues
+  - name: "postgres_slow_query"
+    pattern: "duration:.*ms.*statement:|slow query|long-running query"
+    severity: 3
+    service_type: "postgresql"
+    description: "Slow query detected"
+    auto_fix: false
+    cooldown_seconds: 600
+
+  - name: "postgres_temp_file_large"
+    pattern: "temporary file:.*exceeds.*temp_file_limit"
+    severity: 3
+    service_type: "postgresql"
+    description: "Large temporary file created"
+    auto_fix: false
+    cooldown_seconds: 600
+
+  - name: "postgres_high_cpu"
+    pattern: "high CPU usage|CPU.*exceeded"
+    severity: 3
+    service_type: "postgresql"
+    description: "High CPU usage"
+    auto_fix: false
+    cooldown_seconds: 600
+
+  # Vacuum and maintenance issues
+  - name: "postgres_vacuum_failed"
+    pattern: "vacuum.*failed|autovacuum.*error"
+    severity: 3
+    service_type: "postgresql"
+    description: "Vacuum operation failed"
+    auto_fix: true
+    cooldown_seconds: 1800
+
+  - name: "postgres_analyze_failed"
+    pattern: "analyze.*failed|could not analyze"
+    severity: 3
+    service_type: "postgresql"
+    description: "Analyze operation failed"
+    auto_fix: true
+    cooldown_seconds: 1800
+
+  - name: "postgres_bloat_detected"
+    pattern: "table bloat|index bloat|excessive bloat"
+    severity: 3
+    service_type: "postgresql"
+    description: "Table or index bloat detected"
+    auto_fix: true
+    cooldown_seconds: 3600
+
+  # Configuration errors
+  - name: "postgres_config_error"
+    pattern: "invalid configuration|parameter.*requires|configuration file.*error"
+    severity: 2
+    service_type: "postgresql"
+    description: "Configuration error"
+    auto_fix: false
+    cooldown_seconds: 1800
+
+  - name: "postgres_shared_memory_error"
+    pattern: "could not create shared memory segment|shmget.*failed"
+    severity: 1
+    service_type: "postgresql"
+    description: "Shared memory allocation error"
+    auto_fix: false
+    cooldown_seconds: 600
+
+  # Extension and module errors
+  - name: "postgres_extension_error"
+    pattern: "extension.*does not exist|could not load extension"
+    severity: 3
+    service_type: "postgresql"
+    description: "Extension loading error"
+    auto_fix: false
+    cooldown_seconds: 1800
+
+  - name: "postgres_function_error"
+    pattern: "function.*does not exist|procedure.*does not exist"
+    severity: 3
+    service_type: "postgresql"
+    description: "Function or procedure not found"
+    auto_fix: false
+    cooldown_seconds: 1800
+
+  # Backup and restore errors
+  - name: "postgres_backup_failed"
+    pattern: "pg_dump.*failed|backup.*failed|dump.*error"
+    severity: 2
+    service_type: "postgresql"
+    description: "Backup operation failed"
+    auto_fix: false
+    cooldown_seconds: 1800
+
+  - name: "postgres_restore_failed"
+    pattern: "pg_restore.*failed|restore.*failed|restore.*error"
+    severity: 2
+    service_type: "postgresql"
+    description: "Restore operation failed"
+    auto_fix: false
+    cooldown_seconds: 1800
+
+  # Foreign data wrapper errors
+  - name: "postgres_fdw_error"
+    pattern: "foreign.*server.*error|fdw.*error|foreign table.*error"
+    severity: 3
+    service_type: "postgresql"
+    description: "Foreign data wrapper error"
+    auto_fix: false
+    cooldown_seconds: 1800
+
+  # Tablespace errors
+  - name: "postgres_tablespace_error"
+    pattern: "tablespace.*does not exist|could not create.*tablespace"
+    severity: 2
+    service_type: "postgresql"
+    description: "Tablespace error"
+    auto_fix: false
+    cooldown_seconds: 1800
+
+  # Network and communication errors
+  - name: "postgres_network_error"
+    pattern: "could not receive data|connection lost|unexpected EOF"
+    severity: 2
+    service_type: "postgresql"
+    description: "Network communication error"
+    auto_fix: false
+    cooldown_seconds: 300

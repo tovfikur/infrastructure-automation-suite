@@ -1,0 +1,321 @@
+# Redis Error Patterns for MCP System
+
+patterns:
+  # Critical server errors
+  - name: "redis_server_crashed"
+    pattern: "server crashed|segmentation fault|SIGTERM received"
+    severity: 1
+    service_type: "redis"
+    description: "Redis server crashed"
+    auto_fix: true
+    cooldown_seconds: 300
+
+  - name: "redis_out_of_memory"
+    pattern: "out of memory|OOM|memory usage limit|maxmemory limit"
+    severity: 1
+    service_type: "redis"
+    description: "Redis out of memory"
+    auto_fix: true
+    cooldown_seconds: 300
+
+  - name: "redis_disk_full"
+    pattern: "No space left|disk full|could not write.*no space"
+    severity: 1
+    service_type: "redis"
+    description: "Disk space exhausted"
+    auto_fix: false
+    cooldown_seconds: 600
+
+  - name: "redis_config_error"
+    pattern: "bad configuration|invalid configuration|config.*error"
+    severity: 1
+    service_type: "redis"
+    description: "Redis configuration error"
+    auto_fix: false
+    cooldown_seconds: 1800
+
+  # Connection issues
+  - name: "redis_connection_refused"
+    pattern: "connection refused|could not connect|connection failed"
+    severity: 2
+    service_type: "redis"
+    description: "Redis connection refused"
+    auto_fix: true
+    cooldown_seconds: 300
+
+  - name: "redis_too_many_connections"
+    pattern: "max number of clients reached|too many connections"
+    severity: 2
+    service_type: "redis"
+    description: "Too many client connections"
+    auto_fix: true
+    cooldown_seconds: 300
+
+  - name: "redis_client_timeout"
+    pattern: "client timeout|connection timed out|idle timeout"
+    severity: 3
+    service_type: "redis"
+    description: "Client connection timeout"
+    auto_fix: false
+    cooldown_seconds: 600
+
+  - name: "redis_authentication_failed"
+    pattern: "authentication failed|invalid password|WRONGPASS"
+    severity: 2
+    service_type: "redis"
+    description: "Authentication failure"
+    auto_fix: false
+    cooldown_seconds: 600
+
+  # Memory and performance issues
+  - name: "redis_memory_fragmentation"
+    pattern: "memory fragmentation|fragmentation.*high"
+    severity: 3
+    service_type: "redis"
+    description: "High memory fragmentation"
+    auto_fix: true
+    cooldown_seconds: 1800
+
+  - name: "redis_slow_query"
+    pattern: "slow query|command took.*ms|latency.*high"
+    severity: 3
+    service_type: "redis"
+    description: "Slow query detected"
+    auto_fix: false
+    cooldown_seconds: 600
+
+  - name: "redis_blocked_clients"
+    pattern: "blocked clients|clients blocked|blocking.*timeout"
+    severity: 3
+    service_type: "redis"
+    description: "Clients blocked on operations"
+    auto_fix: true
+    cooldown_seconds: 600
+
+  - name: "redis_eviction_active"
+    pattern: "evicted.*keys|key eviction|maxmemory.*eviction"
+    severity: 3
+    service_type: "redis"
+    description: "Key eviction due to memory pressure"
+    auto_fix: false
+    cooldown_seconds: 900
+
+  # Persistence errors
+  - name: "redis_bgsave_failed"
+    pattern: "background save failed|bgsave.*error|rdb save.*failed"
+    severity: 2
+    service_type: "redis"
+    description: "Background save failed"
+    auto_fix: true
+    cooldown_seconds: 600
+
+  - name: "redis_aof_error"
+    pattern: "AOF.*error|append only file.*error|aof rewrite.*failed"
+    severity: 2
+    service_type: "redis"
+    description: "AOF (Append Only File) error"
+    auto_fix: true
+    cooldown_seconds: 600
+
+  - name: "redis_rdb_corruption"
+    pattern: "RDB.*corrupt|rdb checksum.*mismatch|bad rdb file"
+    severity: 1
+    service_type: "redis"
+    description: "RDB file corruption"
+    auto_fix: false
+    cooldown_seconds: 1800
+
+  - name: "redis_persistence_disabled"
+    pattern: "persistence.*disabled|saving.*disabled"
+    severity: 3
+    service_type: "redis"
+    description: "Redis persistence disabled"
+    auto_fix: false
+    cooldown_seconds: 3600
+
+  # Cluster and replication errors
+  - name: "redis_cluster_down"
+    pattern: "cluster.*down|cluster state.*fail|cluster.*unreachable"
+    severity: 1
+    service_type: "redis"
+    description: "Redis cluster is down"
+    auto_fix: false
+    cooldown_seconds: 300
+
+  - name: "redis_node_unreachable"
+    pattern: "node.*unreachable|cluster node.*timeout|node.*fail"
+    severity: 2
+    service_type: "redis"
+    description: "Cluster node unreachable"
+    auto_fix: false
+    cooldown_seconds: 300
+
+  - name: "redis_replication_lag"
+    pattern: "replication.*lag|slave.*behind|master.*unreachable"
+    severity: 2
+    service_type: "redis"
+    description: "Replication lag detected"
+    auto_fix: false
+    cooldown_seconds: 600
+
+  - name: "redis_replication_broken"
+    pattern: "replication.*broken|slave.*disconnected|master.*lost"
+    severity: 1
+    service_type: "redis"
+    description: "Replication connection broken"
+    auto_fix: false
+    cooldown_seconds: 300
+
+  # Sentinel errors
+  - name: "redis_sentinel_down"
+    pattern: "sentinel.*down|sentinel.*unreachable|quorum.*lost"
+    severity: 1
+    service_type: "redis"
+    description: "Redis Sentinel down"
+    auto_fix: false
+    cooldown_seconds: 300
+
+  - name: "redis_failover_failed"
+    pattern: "failover.*failed|master.*switch.*failed|promotion.*failed"
+    severity: 1
+    service_type: "redis"
+    description: "Failover operation failed"
+    auto_fix: false
+    cooldown_seconds: 600
+
+  # Command execution errors
+  - name: "redis_command_error"
+    pattern: "unknown command|invalid.*command|command.*failed"
+    severity: 3
+    service_type: "redis"
+    description: "Command execution error"
+    auto_fix: false
+    cooldown_seconds: 1800
+
+  - name: "redis_lua_error"
+    pattern: "lua.*error|script.*error|eval.*failed"
+    severity: 3
+    service_type: "redis"
+    description: "Lua script error"
+    auto_fix: false
+    cooldown_seconds: 1800
+
+  - name: "redis_wrong_type"
+    pattern: "wrong.*type|WRONGTYPE|operation.*wrong.*type"
+    severity: 3
+    service_type: "redis"
+    description: "Wrong data type operation"
+    auto_fix: false
+    cooldown_seconds: 1800
+
+  # Security and access control
+  - name: "redis_protected_mode"
+    pattern: "protected mode|bind.*address.*required|authentication.*required"
+    severity: 2
+    service_type: "redis"
+    description: "Protected mode access denied"
+    auto_fix: false
+    cooldown_seconds: 1800
+
+  - name: "redis_suspicious_activity"
+    pattern: "too many.*attempts|brute.*force|suspicious.*activity"
+    severity: 2
+    service_type: "redis"
+    description: "Suspicious access attempts"
+    auto_fix: false
+    cooldown_seconds: 600
+
+  # Module and extension errors
+  - name: "redis_module_error"
+    pattern: "module.*error|module.*failed|extension.*error"
+    severity: 3
+    service_type: "redis"
+    description: "Redis module error"
+    auto_fix: false
+    cooldown_seconds: 1800
+
+  - name: "redis_module_load_failed"
+    pattern: "module.*load.*failed|could not load.*module"
+    severity: 2
+    service_type: "redis"
+    description: "Module loading failed"
+    auto_fix: false
+    cooldown_seconds: 1800
+
+  # Network and protocol errors
+  - name: "redis_protocol_error"
+    pattern: "protocol error|invalid.*protocol|bad.*request"
+    severity: 3
+    service_type: "redis"
+    description: "Protocol error"
+    auto_fix: false
+    cooldown_seconds: 600
+
+  - name: "redis_network_error"
+    pattern: "network.*error|socket.*error|connection.*reset"
+    severity: 3
+    service_type: "redis"
+    description: "Network communication error"
+    auto_fix: false
+    cooldown_seconds: 600
+
+  # Performance and monitoring
+  - name: "redis_latency_spike"
+    pattern: "latency.*spike|response.*time.*high|slow.*response"
+    severity: 3
+    service_type: "redis"
+    description: "High latency detected"
+    auto_fix: false
+    cooldown_seconds: 600
+
+  - name: "redis_cpu_high"
+    pattern: "cpu.*high|cpu.*usage.*exceeded|cpu.*spike"
+    severity: 3
+    service_type: "redis"
+    description: "High CPU usage"
+    auto_fix: false
+    cooldown_seconds: 600
+
+  # Key expiration and TTL
+  - name: "redis_key_expired"
+    pattern: "key.*expired|ttl.*expired|expiration.*error"
+    severity: 4
+    service_type: "redis"
+    description: "Key expiration events"
+    auto_fix: false
+    cooldown_seconds: 1800
+
+  - name: "redis_keyspace_full"
+    pattern: "keyspace.*full|maximum.*keys.*reached"
+    severity: 2
+    service_type: "redis"
+    description: "Keyspace limit reached"
+    auto_fix: true
+    cooldown_seconds: 600
+
+  # Pub/Sub errors
+  - name: "redis_pubsub_error"
+    pattern: "publish.*failed|subscribe.*error|pubsub.*error"
+    severity: 3
+    service_type: "redis"
+    description: "Pub/Sub operation error"
+    auto_fix: false
+    cooldown_seconds: 600
+
+  # Stream errors (Redis Streams)
+  - name: "redis_stream_error"
+    pattern: "stream.*error|xadd.*failed|stream.*full"
+    severity: 3
+    service_type: "redis"
+    description: "Redis Stream error"
+    auto_fix: false
+    cooldown_seconds: 600
+
+  # Maintenance and cleanup
+  - name: "redis_cleanup_failed"
+    pattern: "cleanup.*failed|maintenance.*error|expire.*failed"
+    severity: 3
+    service_type: "redis"
+    description: "Cleanup or maintenance failed"
+    auto_fix: true
+    cooldown_seconds: 1800

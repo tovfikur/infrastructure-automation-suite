@@ -1,0 +1,453 @@
+# Infrastructure Automation Suite - Master Docker Compose
+# Integrates MCP Monitoring System with Odoo Multi-Tenant Platform
+
+version: '3.8'
+
+services:
+  # ===================================================================
+  # SHARED INFRASTRUCTURE
+  # ===================================================================
+  
+  # Shared PostgreSQL Database
+  postgres-shared:
+    image: postgres:15
+    container_name: shared-postgres
+    environment:
+      POSTGRES_DB: postgres
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_SHARED_PASSWORD:-secure_shared_password_123}
+      POSTGRES_MULTIPLE_DATABASES: saas_manager,odoo_master,mcp_monitoring
+      POSTGRES_MULTIPLE_USERS: saas_user:${SAAS_DB_PASSWORD:-saas_pass},odoo_master:${ODOO_DB_PASSWORD:-odoo_pass},mcp_user:${MCP_DB_PASSWORD:-mcp_pass}
+    volumes:
+      - postgres_shared_data:/var/lib/postgresql/data
+      - ./scripts/init-databases.sql:/docker-entrypoint-initdb.d/init-databases.sql
+    ports:
+      - "5433:5432"
+    networks:
+      - infrastructure_network
+    restart: unless-stopped
+    command: postgres -c max_connections=300 -c shared_buffers=512MB -c log_statement=all
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Shared Redis Cluster
+  redis-shared:
+    image: redis:7-alpine
+    container_name: shared-redis
+    ports:
+      - "6380:6379"
+    environment:
+      - REDIS_PASSWORD=${REDIS_SHARED_PASSWORD:-secure_redis_password}
+    command: redis-server --requirepass ${REDIS_SHARED_PASSWORD:-secure_redis_password} --maxmemory 1gb --maxmemory-policy allkeys-lru --appendonly yes
+    volumes:
+      - redis_shared_data:/data
+    networks:
+      - infrastructure_network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_SHARED_PASSWORD:-secure_redis_password}", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  # ===================================================================
+  # MCP DISTRIBUTED MONITORING SYSTEM
+  # ===================================================================
+
+  # MCP Main Server
+  mcp-server:
+    build:
+      context: ./mcp-monitoring-system
+      dockerfile: Dockerfile.server
+    container_name: mcp-main-server
+    ports:
+      - "8080:8080"
+      - "9090:9090"
+    environment:
+      - CLAUDE_API_KEY=${CLAUDE_API_KEY}
+      - MCP_CONFIG_PATH=/app/configs/mcp-config.yml
+      - DATABASE_URL=postgresql://mcp_user:${MCP_DB_PASSWORD:-mcp_pass}@postgres-shared:5432/mcp_monitoring
+      - REDIS_URL=redis://:${REDIS_SHARED_PASSWORD:-secure_redis_password}@redis-shared:6379/1
+      - PYTHONPATH=/app
+    volumes:
+      - ./mcp-monitoring-system/configs:/app/configs:ro
+      - ./mcp-monitoring-system/error_patterns:/app/error_patterns:ro
+      - ./mcp-monitoring-system/fix_templates:/app/fix_templates:ro
+      - ./logs/mcp:/var/log/mcp
+      - ./backups/mcp:/var/backups/mcp
+      - ./ssh-keys:/app/ssh-keys:ro
+    depends_on:
+      - postgres-shared
+      - redis-shared
+    networks:
+      - infrastructure_network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # MCP Client for Odoo Monitoring
+  mcp-odoo-client:
+    build:
+      context: ./mcp-monitoring-system
+      dockerfile: Dockerfile.client
+    container_name: mcp-odoo-monitor
+    environment:
+      - CLIENT_CONFIG_PATH=/app/configs/client-configs/odoo-client.yml
+      - MCP_SERVER_URL=http://mcp-server:8080
+      - ODOO_DB_PASSWORD=${ODOO_DB_PASSWORD:-odoo_pass}
+      - PYTHONPATH=/app
+    volumes:
+      - ./mcp-monitoring-system/configs:/app/configs:ro
+      - ./mcp-monitoring-system/error_patterns:/app/error_patterns:ro
+      - ./mcp-monitoring-system/clients:/app/clients:ro
+      - ./logs/mcp:/var/log/mcp
+      - odoo_master_logs:/var/log/odoo:ro
+    depends_on:
+      - mcp-server
+      - odoo-master
+    networks:
+      - infrastructure_network
+    restart: unless-stopped
+
+  # MCP Client for Database Monitoring
+  mcp-postgres-client:
+    build:
+      context: ./mcp-monitoring-system
+      dockerfile: Dockerfile.client
+    container_name: mcp-postgres-monitor
+    environment:
+      - CLIENT_CONFIG_PATH=/app/configs/client-configs/postgres-client.yml
+      - MCP_SERVER_URL=http://mcp-server:8080
+      - POSTGRES_PASSWORD=${POSTGRES_SHARED_PASSWORD:-secure_shared_password_123}
+      - PYTHONPATH=/app
+    volumes:
+      - ./mcp-monitoring-system/configs:/app/configs:ro
+      - ./mcp-monitoring-system/error_patterns:/app/error_patterns:ro
+      - ./mcp-monitoring-system/clients:/app/clients:ro
+      - ./logs/mcp:/var/log/mcp
+    depends_on:
+      - mcp-server
+      - postgres-shared
+    networks:
+      - infrastructure_network
+    restart: unless-stopped
+
+  # MCP Client for Redis Monitoring
+  mcp-redis-client:
+    build:
+      context: ./mcp-monitoring-system
+      dockerfile: Dockerfile.client
+    container_name: mcp-redis-monitor
+    environment:
+      - CLIENT_CONFIG_PATH=/app/configs/client-configs/redis-client.yml
+      - MCP_SERVER_URL=http://mcp-server:8080
+      - REDIS_PASSWORD=${REDIS_SHARED_PASSWORD:-secure_redis_password}
+      - PYTHONPATH=/app
+    volumes:
+      - ./mcp-monitoring-system/configs:/app/configs:ro
+      - ./mcp-monitoring-system/error_patterns:/app/error_patterns:ro
+      - ./mcp-monitoring-system/clients:/app/clients:ro
+      - ./logs/mcp:/var/log/mcp
+    depends_on:
+      - mcp-server
+      - redis-shared
+    networks:
+      - infrastructure_network
+    restart: unless-stopped
+
+  # ===================================================================
+  # ODOO MULTI-TENANT SYSTEM
+  # ===================================================================
+
+  # SaaS Management Service
+  saas-manager:
+    build:
+      context: ./odoo-multi-tenant-system/saas_manager
+      dockerfile: Dockerfile
+    container_name: saas-manager
+    environment:
+      - DATABASE_URL=postgresql://saas_user:${SAAS_DB_PASSWORD:-saas_pass}@postgres-shared:5432/saas_manager
+      - REDIS_URL=redis://:${REDIS_SHARED_PASSWORD:-secure_redis_password}@redis-shared:6379/2
+      - SECRET_KEY=${SAAS_SECRET_KEY:-saas-secret-key}
+      - ODOO_MASTER_URL=http://odoo-master:8069
+      - ODOO_MASTER_DB=${ODOO_MASTER_DB:-odoo_master}
+      - ODOO_MASTER_USERNAME=${ODOO_MASTER_USERNAME:-admin}
+      - ODOO_MASTER_PASSWORD=${ODOO_MASTER_PASSWORD:-admin}
+      - POSTGRES_HOST=postgres-shared
+      - POSTGRES_PORT=5432
+      - POSTGRES_USER=odoo_master
+      - POSTGRES_PASSWORD=${ODOO_DB_PASSWORD:-odoo_pass}
+      - MCP_INTEGRATION_ENABLED=true
+      - MCP_SERVER_URL=http://mcp-server:8080
+    ports:
+      - "8000:8000"
+    networks:
+      - infrastructure_network
+    depends_on:
+      - postgres-shared
+      - redis-shared
+      - mcp-server
+    restart: unless-stopped
+    volumes:
+      - ./logs/saas:/app/logs
+      - odoo_filestore:/opt/odoo/filestore
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./odoo-multi-tenant-system/nginx/conf.d:/host-nginx/conf.d
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Nginx Load Balancer with MCP Monitoring
+  nginx-lb:
+    image: nginx:alpine
+    container_name: nginx-load-balancer
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./odoo-multi-tenant-system/nginx/nginx.conf:/etc/nginx/nginx.conf
+      - ./odoo-multi-tenant-system/nginx/conf.d:/etc/nginx/conf.d
+      - ./ssl:/etc/nginx/ssl
+      - nginx_logs:/var/log/nginx
+    networks:
+      - infrastructure_network
+    depends_on:
+      - saas-manager
+      - odoo-master
+      - odoo-worker1
+      - odoo-worker2
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # MCP Client for Nginx Monitoring
+  mcp-nginx-client:
+    build:
+      context: ./mcp-monitoring-system
+      dockerfile: Dockerfile.client
+    container_name: mcp-nginx-monitor
+    environment:
+      - CLIENT_CONFIG_PATH=/app/configs/client-configs/nginx-client.yml
+      - MCP_SERVER_URL=http://mcp-server:8080
+      - PYTHONPATH=/app
+    volumes:
+      - ./mcp-monitoring-system/configs:/app/configs:ro
+      - ./mcp-monitoring-system/error_patterns:/app/error_patterns:ro
+      - ./mcp-monitoring-system/clients:/app/clients:ro
+      - ./logs/mcp:/var/log/mcp
+      - nginx_logs:/var/log/nginx:ro
+    depends_on:
+      - mcp-server
+      - nginx-lb
+    networks:
+      - infrastructure_network
+    restart: unless-stopped
+
+  # Odoo Master Instance
+  odoo-master:
+    image: odoo:17.0
+    container_name: odoo-master
+    environment:
+      - HOST=postgres-shared
+      - USER=odoo_master
+      - PASSWORD=${ODOO_DB_PASSWORD:-odoo_pass}
+      - POSTGRES_DB=odoo_master
+    ports:
+      - "8069:8069"
+    networks:
+      - infrastructure_network
+    depends_on:
+      - postgres-shared
+    volumes:
+      - odoo_master_data:/var/lib/odoo
+      - odoo_master_logs:/var/log/odoo
+      - ./odoo-multi-tenant-system/odoo_master/addons:/mnt/extra-addons
+      - ./odoo-multi-tenant-system/shared_addons:/mnt/shared-addons
+      - odoo_filestore:/opt/odoo/filestore
+      - ./odoo-multi-tenant-system/odoo_master/config/odoo.conf:/etc/odoo/odoo.conf
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8069/web/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  # Odoo Worker Instances
+  odoo-worker1:
+    image: odoo:17.0
+    container_name: odoo-worker1
+    environment:
+      - HOST=postgres-shared
+      - USER=odoo_master
+      - PASSWORD=${ODOO_DB_PASSWORD:-odoo_pass}
+    networks:
+      - infrastructure_network
+    depends_on:
+      - postgres-shared
+    volumes:
+      - odoo_filestore:/var/lib/odoo
+      - odoo_worker_logs:/var/log/odoo
+      - ./odoo-multi-tenant-system/odoo_workers/addons:/mnt/extra-addons
+      - ./odoo-multi-tenant-system/shared_addons:/mnt/shared-addons
+      - ./odoo-multi-tenant-system/odoo_workers/config/odoo.conf:/etc/odoo/odoo.conf
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8069/web/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  odoo-worker2:
+    image: odoo:17.0
+    container_name: odoo-worker2
+    environment:
+      - HOST=postgres-shared
+      - USER=odoo_master
+      - PASSWORD=${ODOO_DB_PASSWORD:-odoo_pass}
+    networks:
+      - infrastructure_network
+    depends_on:
+      - postgres-shared
+    volumes:
+      - odoo_filestore:/var/lib/odoo
+      - odoo_worker_logs:/var/log/odoo
+      - ./odoo-multi-tenant-system/odoo_workers/addons:/mnt/extra-addons
+      - ./odoo-multi-tenant-system/shared_addons:/mnt/shared-addons
+      - ./odoo-multi-tenant-system/odoo_workers/config/odoo.conf:/etc/odoo/odoo.conf
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8069/web/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # ===================================================================
+  # MONITORING & OBSERVABILITY
+  # ===================================================================
+
+  # Prometheus for Metrics Collection
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: infrastructure-prometheus
+    ports:
+      - "9091:9090"
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    networks:
+      - infrastructure_network
+    restart: unless-stopped
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--storage.tsdb.retention.time=30d'
+
+  # Grafana for Visualization
+  grafana:
+    image: grafana/grafana:latest
+    container_name: infrastructure-grafana
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:-admin}
+      - GF_INSTALL_PLUGINS=redis-datasource,postgres-datasource
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./monitoring/grafana:/etc/grafana/provisioning
+    networks:
+      - infrastructure_network
+    restart: unless-stopped
+
+  # Backup & Disaster Recovery Panel
+  backup-panel:
+    build:
+      context: ./odoo-multi-tenant-system/dr-backups/backup_panel
+      dockerfile: Dockerfile
+    container_name: backup-panel
+    environment:
+      - SECRET_KEY=${BACKUP_PANEL_SECRET_KEY:-backup-panel-secret}
+      - DR_CONFIG_PATH=/app/config/dr-config.env
+      - MCP_SERVER_URL=http://mcp-server:8080
+      - DATABASE_URL=postgresql://postgres:${POSTGRES_SHARED_PASSWORD:-secure_shared_password_123}@postgres-shared:5432/postgres
+    ports:
+      - "5000:5000"
+    networks:
+      - infrastructure_network
+    depends_on:
+      - postgres-shared
+      - mcp-server
+    volumes:
+      - ./backups:/app/backups
+      - backup_panel_data:/app/data
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - odoo_filestore:/opt/odoo/filestore
+      - ./ssl:/app/ssl:ro
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/api/system/status"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+networks:
+  infrastructure_network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.25.0.0/16
+
+volumes:
+  # Shared Infrastructure
+  postgres_shared_data:
+    driver: local
+  redis_shared_data:
+    driver: local
+  
+  # Odoo System
+  odoo_master_data:
+    driver: local
+  odoo_master_logs:
+    driver: local
+  odoo_worker_logs:
+    driver: local
+  odoo_filestore:
+    driver: local
+  
+  # Monitoring
+  prometheus_data:
+    driver: local
+  grafana_data:
+    driver: local
+  
+  # Nginx
+  nginx_logs:
+    driver: local
+  
+  # Backups
+  backup_panel_data:
+    driver: local
+
+# Service Health Check Summary:
+# - MCP Server: http://localhost:8080/health
+# - SaaS Manager: http://localhost:8000/health  
+# - Odoo Master: http://localhost:8069/web/health
+# - Nginx LB: http://localhost/health
+# - Prometheus: http://localhost:9091/
+# - Grafana: http://localhost:3000/
+# - Backup Panel: http://localhost:5000/api/system/status
+# - PostgreSQL: pg_isready check
+# - Redis: redis-cli ping

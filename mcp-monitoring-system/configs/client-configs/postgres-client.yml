@@ -1,0 +1,167 @@
+# PostgreSQL MCP Client Configuration
+
+# Client Identification
+client_id: "postgres-prod-01"
+service_type: "postgresql"
+
+# Database Connection Settings
+database:
+  host: "localhost"
+  port: 5432
+  database: "postgres"
+  username: "postgres"
+  password: "${POSTGRES_PASSWORD}"  # Set via environment variable
+
+# PostgreSQL File Paths
+data_directory: "/var/lib/postgresql/data"
+config_file: "/etc/postgresql/postgresql.conf"
+hba_file: "/etc/postgresql/pg_hba.conf"
+log_directory: "/var/log/postgresql"
+
+# Log Monitoring
+additional_log_paths:
+  - "/var/lib/postgresql/data/log/postgresql.log"
+
+# Service Configuration
+service_name: "postgresql"
+
+# Error Pattern Configuration
+error_patterns_file: "../error_patterns/postgres_patterns.yml"
+
+# Health Check Settings
+health_check_interval: 60  # seconds
+
+# Backup Configuration
+backup_enabled: true
+backup_dir: "/var/backups/postgresql"
+backup_retention_days: 7
+
+# Database Monitoring Settings
+monitoring:
+  # Connection monitoring
+  max_connections_threshold: 80  # % of max_connections
+  idle_connection_timeout: 600   # seconds
+  
+  # Query monitoring
+  slow_query_threshold: 5000     # milliseconds
+  long_query_threshold: 300      # seconds
+  
+  # Resource monitoring
+  shared_buffers_usage: 80       # % threshold
+  temp_file_threshold: 1024      # MB
+  
+  # Replication monitoring (if applicable)
+  replication_lag_threshold: 60  # seconds
+
+# Performance Tuning Parameters
+performance:
+  # Memory settings (will be adjusted based on system resources)
+  shared_buffers_mb: null        # Auto-detect if null
+  effective_cache_size_mb: null  # Auto-detect if null
+  work_mem_mb: 4
+  maintenance_work_mem_mb: 64
+  
+  # Connection settings
+  max_connections: 100
+  
+  # Checkpoint settings
+  checkpoint_completion_target: 0.9
+  wal_buffers_mb: 16
+
+# Maintenance Settings
+maintenance:
+  # Auto-vacuum settings
+  autovacuum_enabled: true
+  vacuum_cost_delay: 20
+  
+  # Statistics collection
+  track_activities: true
+  track_counts: true
+  track_io_timing: true
+  
+  # Archive settings (if applicable)
+  archive_mode: false
+  archive_command: ""
+
+# High Availability Settings (if applicable)
+high_availability:
+  replication_enabled: false
+  master_server: null
+  slave_servers: []
+  streaming_replication: false
+
+# Security Settings
+security:
+  ssl_enabled: false
+  ssl_cert_file: ""
+  ssl_key_file: ""
+  log_connections: true
+  log_disconnections: true
+  log_checkpoints: true
+
+# Custom SQL for Health Checks
+health_queries:
+  basic_check: "SELECT 1"
+  connection_count: "SELECT count(*) FROM pg_stat_activity WHERE state = 'active'"
+  database_size: "SELECT pg_database_size(current_database())"
+  cache_hit_ratio: |
+    SELECT 
+      sum(heap_blks_hit) / sum(heap_blks_hit + heap_blks_read) * 100 as cache_hit_ratio
+    FROM pg_statio_user_tables
+
+# Alert Thresholds
+alerts:
+  disk_usage_threshold: 85       # %
+  connection_usage_threshold: 80 # %
+  cache_hit_ratio_min: 95        # %
+  replication_lag_max: 300       # seconds
+
+# Docker Configuration (if running in Docker)
+docker_enabled: false
+docker_container_name: "postgres"
+docker_image: "postgres:latest"
+
+# Environment-specific Settings
+environment: "production"  # production, staging, development
+
+# Custom Commands
+custom_commands:
+  restart: "systemctl restart postgresql"
+  reload: "systemctl reload postgresql"
+  status: "systemctl status postgresql"
+  start: "systemctl start postgresql"
+  stop: "systemctl stop postgresql"
+
+# Extensions Monitoring (if used)
+extensions:
+  monitor_extensions: true
+  critical_extensions:
+    - "uuid-ossp"
+    - "pg_stat_statements"
+    - "pg_trgm"
+
+# Partitioning Settings (if using table partitioning)
+partitioning:
+  enabled: false
+  monitor_partition_sizes: false
+  auto_create_partitions: false
+
+# Connection Pooling (if using pgpool or similar)
+connection_pooling:
+  enabled: false
+  pool_type: "pgpool"  # pgpool, pgbouncer
+  pool_config_file: ""
+
+# Backup Strategy
+backup_strategy:
+  strategy: "pg_dump"  # pg_dump, pg_basebackup, wal-e
+  compression: true
+  parallel_workers: 2
+  include_schemas: []  # Empty means all schemas
+  exclude_schemas: []
+
+# Recovery Settings
+recovery:
+  point_in_time_recovery: false
+  recovery_target_time: null
+  recovery_target_xid: null

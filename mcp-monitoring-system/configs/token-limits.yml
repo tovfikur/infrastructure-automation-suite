@@ -1,0 +1,127 @@
+# Token Limit Configuration for Claude API
+# Manages rate limiting, batching, and token usage optimization
+
+# Rate Limiting Configuration
+rate_limiting:
+  # Maximum tokens per minute (Anthropic limit)
+  max_tokens_per_minute: 40000
+  
+  # Maximum requests per minute
+  max_requests_per_minute: 50
+  
+  # Cooldown period after hitting limits (seconds)
+  cooldown_seconds: 60
+  
+  # Maximum backoff time for retries (seconds)
+  max_backoff: 300
+
+# Request Batching Configuration
+batching:
+  # Number of requests to batch together
+  batch_size: 5
+  
+  # Maximum time to wait for batching (seconds)
+  batch_timeout_seconds: 30
+  
+  # Enable intelligent batching based on error similarity
+  intelligent_batching: true
+  
+  # Similarity threshold for batching (0.0-1.0)
+  similarity_threshold: 0.8
+
+# Response Caching Configuration
+caching:
+  # Enable response caching
+  enabled: true
+  
+  # Cache TTL in hours
+  ttl_hours: 24
+  
+  # Maximum cache entries
+  max_entries: 1000
+  
+  # Cache hit ratio threshold for warnings
+  hit_ratio_threshold: 0.6
+
+# Priority-based Token Allocation
+priority_allocation:
+  # Token allocation percentages by priority
+  critical: 40    # 40% of tokens for critical errors
+  high: 30        # 30% for high priority
+  medium: 20      # 20% for medium priority
+  low: 10         # 10% for low priority
+  
+  # Reserve tokens for critical errors
+  critical_reserve: 5000
+  
+  # Enable priority queue preemption
+  preemption_enabled: true
+
+# Token Usage Optimization
+optimization:
+  # Context compression settings
+  compress_context: true
+  max_context_length: 4000
+  
+  # Use shorter prompts for simple errors
+  adaptive_prompts: true
+  
+  # Estimate tokens before API calls
+  pre_estimate: true
+  
+  # Token count estimation multiplier
+  estimation_multiplier: 1.2
+
+# Fallback Strategies
+fallback:
+  # Use cached responses when over limit
+  use_cache_on_limit: true
+  
+  # Use simple pattern matching when API unavailable
+  pattern_matching_fallback: true
+  
+  # Maximum time to wait for token availability (seconds)
+  max_wait_time: 120
+  
+  # Enable offline mode with limited functionality
+  offline_mode_enabled: true
+
+# Monitoring and Alerts
+monitoring:
+  # Alert when token usage exceeds percentage
+  usage_alert_threshold: 80
+  
+  # Alert on consecutive API failures
+  failure_alert_threshold: 5
+  
+  # Track token usage statistics
+  stats_enabled: true
+  
+  # Export metrics for monitoring
+  metrics_export: true
+
+# Usage Tracking
+tracking:
+  # Track usage by client
+  per_client_tracking: true
+  
+  # Track usage by error type
+  per_error_type_tracking: true
+  
+  # Historical data retention (days)
+  retention_days: 30
+  
+  # Generate usage reports
+  reporting_enabled: true
+
+# Emergency Settings
+emergency:
+  # Stop processing on critical token shortage
+  emergency_stop_threshold: 95
+  
+  # Emergency contact for token issues
+  emergency_contact: "admin@example.com"
+  
+  # Automatic recovery settings
+  auto_recovery: true
+  recovery_cooldown: 300  # 5 minutes

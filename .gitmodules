@@ -1,0 +1,3 @@
+[submodule "odoo-multi-tenant-system"]
+	path = odoo-multi-tenant-system
+	url = https://github.com/tovfikur/odoo-multi-tenant-system.git
