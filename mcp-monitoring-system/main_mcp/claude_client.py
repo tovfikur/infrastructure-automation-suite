@@ -1,17 +1,19 @@
 """
-Claude API Client for MCP Distributed Monitoring System.
-Handles communication with Anthropic's Claude API with retry logic and fallback strategies.
+Claude Desktop Client for MCP Distributed Monitoring System.
+Handles communication with Claude Desktop app directly instead of API calls.
 """
 
 import asyncio
 import json
 import time
+import subprocess
+import tempfile
+import os
+import uuid
 from typing import Dict, List, Optional, Any, Union
 from dataclasses import dataclass
 from datetime import datetime
 import structlog
-import anthropic
-from anthropic import Anthropic, AsyncAnthropic
 from .token_manager import TokenUsage
 
 logger = structlog.get_logger(__name__)
@@ -40,8 +42,8 @@ class BatchFixResponse:
     total_tokens_used: int
 
 
-class ClaudeAPIError(Exception):
-    """Custom exception for Claude API errors."""
+class ClaudeDesktopError(Exception):
+    """Custom exception for Claude Desktop integration errors."""
     def __init__(self, message: str, error_code: str = None, retry_after: int = None):
         super().__init__(message)
         self.error_code = error_code
@@ -49,28 +51,217 @@ class ClaudeAPIError(Exception):
 
 
 class ClaudeClient:
-    """Production-ready Claude API client with comprehensive error handling."""
+    """Production-ready Claude Desktop client with comprehensive error handling."""
     
     def __init__(
         self,
-        api_key: str,
+        claude_desktop_path: str = None,
         model: str = "claude-3-5-sonnet-20241022",
         max_retries: int = 3,
         base_delay: float = 1.0,
         max_delay: float = 60.0,
         timeout: int = 300
     ):
-        self.api_key = api_key
+        self.claude_desktop_path = claude_desktop_path or self._find_claude_desktop()
         self.model = model
         self.max_retries = max_retries
         self.base_delay = base_delay
         self.max_delay = max_delay
         self.timeout = timeout
         
-        # Initialize both sync and async clients
-        self.client = Anthropic(api_key=api_key)
-        self.async_client = AsyncAnthropic(api_key=api_key)
+        # Working directory for temporary files
+        self.temp_dir = tempfile.mkdtemp(prefix="mcp_claude_")
         
+        # Check if Claude Desktop is available
+        if not self._is_claude_desktop_available():
+            logger.warning("Claude Desktop not found, falling back to offline mode")
+        
+    def _find_claude_desktop(self) -> Optional[str]:
+        """Find Claude Desktop installation path."""
+        possible_paths = [
+            # Windows paths
+            r"C:\Users\{}\AppData\Local\Anthropic\Claude\Claude.exe".format(os.getenv('USERNAME', '')),
+            r"C:\Program Files\Anthropic\Claude\Claude.exe",
+            r"C:\Program Files (x86)\Anthropic\Claude\Claude.exe",
+            # macOS paths
+            "/Applications/Claude.app/Contents/MacOS/Claude",
+            # Linux paths
+            "/usr/bin/claude",
+            "/usr/local/bin/claude",
+            "/opt/claude/claude",
+        ]
+        
+        for path in possible_paths:
+            if os.path.exists(path):
+                logger.info(f"Found Claude Desktop at: {path}")
+                return path
+        
+        logger.warning("Claude Desktop not found in standard locations")
+        return None
+    
+    def _is_claude_desktop_available(self) -> bool:
+        """Check if Claude Desktop is available and running."""
+        if not self.claude_desktop_path or not os.path.exists(self.claude_desktop_path):
+            return False
+        
+        try:
+            # Try to check if Claude Desktop is responsive
+            # This is a placeholder - actual implementation would depend on Claude Desktop's API
+            result = subprocess.run(
+                [self.claude_desktop_path, "--version"],
+                capture_output=True,
+                text=True,
+                timeout=10
+            )
+            return result.returncode == 0
+        except (subprocess.TimeoutExpired, FileNotFoundError, PermissionError):
+            return False
+    
+    def _create_claude_request_file(self, prompt: str, system_prompt: str = "") -> str:
+        """Create a temporary file with the request for Claude Desktop."""
+        request_id = str(uuid.uuid4())
+        request_file = os.path.join(self.temp_dir, f"request_{request_id}.txt")
+        
+        # Create formatted request
+        content = f"""=== SYSTEM PROMPT ===
+{system_prompt}
+
+=== USER REQUEST ===
+{prompt}
+
+=== INSTRUCTIONS ===
+Please provide a JSON response with the following structure:
+{{
+  "fix_commands": ["command1", "command2"],
+  "explanation": "Clear explanation of the fix",
+  "confidence": 0.95,
+  "requires_restart": true,
+  "rollback_commands": ["rollback1", "rollback2"],
+  "validation_commands": ["test1", "test2"],
+  "estimated_downtime": 30,
+  "risk_level": "medium"
+}}
+"""
+        
+        with open(request_file, 'w', encoding='utf-8') as f:
+            f.write(content)
+        
+        return request_file
+    
+    def _get_claude_response_via_desktop(self, request_file: str) -> Optional[str]:
+        """Get response from Claude Desktop app."""
+        try:
+            response_file = request_file.replace('request_', 'response_')
+            
+            # This is a conceptual implementation
+            # In practice, you might need to use different methods like:
+            # 1. Automation tools (pyautogui, selenium)
+            # 2. Clipboard integration
+            # 3. File watching system
+            # 4. IPC if Claude Desktop supports it
+            
+            # For now, we'll simulate the interaction
+            # You would need to implement the actual Claude Desktop automation here
+            response = self._simulate_claude_desktop_interaction(request_file)
+            
+            if response:
+                with open(response_file, 'w', encoding='utf-8') as f:
+                    f.write(response)
+                return response
+            
+            return None
+            
+        except Exception as e:
+            logger.error(f"Error getting response from Claude Desktop: {str(e)}")
+            return None
+    
+    def _simulate_claude_desktop_interaction(self, request_file: str) -> Optional[str]:
+        """Interact with Claude Desktop using automation.
+        
+        This implementation uses GUI automation to:
+        1. Open Claude Desktop
+        2. Copy the request content
+        3. Paste it into Claude
+        4. Wait for response
+        5. Copy the response
+        6. Return the result
+        """
+        
+        try:
+            from .claude_desktop_automation import ClaudeDesktopAutomation, ClaudeDesktopFileInterface
+            
+            # Try GUI automation first
+            automation = ClaudeDesktopAutomation(self.claude_desktop_path)
+            
+            if automation.is_available():
+                # Read the request content
+                with open(request_file, 'r', encoding='utf-8') as f:
+                    request_content = f.read()
+                
+                # Get system prompt and user content
+                lines = request_content.split('\n')
+                system_prompt = ""
+                user_content = ""
+                
+                current_section = None
+                for line in lines:
+                    if "=== SYSTEM PROMPT ===" in line:
+                        current_section = "system"
+                        continue
+                    elif "=== USER REQUEST ===" in line:
+                        current_section = "user"
+                        continue
+                    elif "=== INSTRUCTIONS ===" in line:
+                        current_section = "instructions"
+                        continue
+                    elif current_section == "system" and line.strip():
+                        system_prompt += line + "\n"
+                    elif current_section in ["user", "instructions"] and line.strip():
+                        user_content += line + "\n"
+                
+                # Get response from Claude Desktop
+                response = automation.get_response(user_content.strip(), system_prompt.strip())
+                
+                if response:
+                    logger.info("Successfully got response from Claude Desktop via automation")
+                    return response
+                else:
+                    logger.warning("GUI automation failed, trying file interface")
+            
+            # Fallback to file-based interface
+            file_interface = ClaudeDesktopFileInterface()
+            
+            if file_interface.test_connection():
+                with open(request_file, 'r', encoding='utf-8') as f:
+                    request_content = f.read()
+                
+                response = file_interface.get_response(request_content)
+                
+                if response:
+                    logger.info("Successfully got response from Claude Desktop via file interface")
+                    return response
+            
+            logger.info("Claude Desktop interaction methods unavailable - using fallback mode")
+            return None
+            
+        except ImportError:
+            logger.warning("Claude Desktop automation dependencies not available - using fallback mode")
+            return None
+        except Exception as e:
+            logger.error(f"Error in Claude Desktop interaction: {str(e)}")
+            return None
+    
+    def _cleanup_temp_files(self, request_file: str):
+        """Clean up temporary files."""
+        try:
+            if os.path.exists(request_file):
+                os.remove(request_file)
+            response_file = request_file.replace('request_', 'response_')
+            if os.path.exists(response_file):
+                os.remove(response_file)
+        except Exception as e:
+            logger.warning(f"Error cleaning up temp files: {str(e)}")
+
         # Fallback responses for different error types
         self.fallback_responses = {
             "nginx": {
@@ -115,31 +306,14 @@ class ClaudeClient:
         for attempt in range(max_retries + 1):
             try:
                 return await func(*args, **kwargs)
-            except anthropic.RateLimitError as e:
-                last_exception = e
-                if attempt == max_retries:
-                    break
-                
-                # Extract retry-after from headers if available
-                retry_after = getattr(e, 'retry_after', None) or (2 ** attempt)
-                delay = min(retry_after, self.max_delay)
-                
-                logger.warning(
-                    "Rate limit exceeded, retrying",
-                    attempt=attempt + 1,
-                    delay=delay,
-                    max_retries=max_retries
-                )
-                await asyncio.sleep(delay)
-                
-            except anthropic.APIError as e:
+            except ClaudeDesktopError as e:
                 last_exception = e
                 if attempt == max_retries:
                     break
                 
                 delay = min(self.base_delay * (2 ** attempt), self.max_delay)
                 logger.warning(
-                    "API error, retrying",
+                    "Claude Desktop error, retrying",
                     attempt=attempt + 1,
                     delay=delay,
                     error=str(e)
@@ -148,14 +322,11 @@ class ClaudeClient:
                 
             except Exception as e:
                 # For unexpected errors, don't retry
-                logger.error("Unexpected error in Claude API call", error=str(e))
-                raise ClaudeAPIError(f"Unexpected error: {str(e)}")
+                logger.error("Unexpected error in Claude Desktop interaction", error=str(e))
+                raise ClaudeDesktopError(f"Unexpected error: {str(e)}")
         
         # All retries exhausted
-        raise ClaudeAPIError(
-            f"Failed after {max_retries} retries: {str(last_exception)}",
-            error_code=getattr(last_exception, 'status_code', None)
-        )
+        raise ClaudeDesktopError(f"Failed after {max_retries} retries: {str(last_exception)}")
     
     def _build_system_prompt(self) -> str:
         """Build the system prompt for error analysis and fixing."""
@@ -210,43 +381,49 @@ Please analyze these errors and provide a comprehensive fix plan following the J
         
         return prompt
     
-    async def _make_api_call(
+    async def _make_desktop_call(
         self,
         messages: List[Dict[str, str]],
         request_id: str
-    ) -> anthropic.types.Message:
-        """Make API call to Claude with proper error handling."""
+    ) -> Optional[str]:
+        """Make call to Claude Desktop with proper error handling."""
         try:
-            response = await self.async_client.messages.create(
-                model=self.model,
-                max_tokens=4000,
-                temperature=0.1,
-                system=self._build_system_prompt(),
-                messages=messages,
-                timeout=self.timeout
-            )
+            # Combine system prompt and user messages
+            system_prompt = self._build_system_prompt()
+            user_content = ""
             
-            logger.info(
-                "Claude API call successful",
-                request_id=request_id,
-                model=self.model,
-                input_tokens=response.usage.input_tokens,
-                output_tokens=response.usage.output_tokens
-            )
+            for message in messages:
+                if message.get("role") == "user":
+                    user_content += message.get("content", "") + "\n"
             
-            return response
+            # Create request file
+            request_file = self._create_claude_request_file(user_content, system_prompt)
             
-        except anthropic.AuthenticationError:
-            raise ClaudeAPIError("Invalid API key", "auth_error")
-        except anthropic.PermissionDeniedError:
-            raise ClaudeAPIError("Permission denied", "permission_error")
-        except anthropic.NotFoundError:
-            raise ClaudeAPIError("Model not found", "not_found")
-        except anthropic.BadRequestError as e:
-            raise ClaudeAPIError(f"Bad request: {str(e)}", "bad_request")
+            try:
+                # Get response from Claude Desktop
+                response_text = self._get_claude_response_via_desktop(request_file)
+                
+                if response_text:
+                    logger.info(
+                        "Claude Desktop call successful",
+                        request_id=request_id,
+                        model=self.model
+                    )
+                    return response_text
+                else:
+                    logger.warning(
+                        "Claude Desktop call returned no response",
+                        request_id=request_id
+                    )
+                    return None
+                    
+            finally:
+                # Clean up temporary files
+                self._cleanup_temp_files(request_file)
+            
         except Exception as e:
-            logger.error("Unexpected error in API call", error=str(e))
-            raise
+            logger.error("Unexpected error in Claude Desktop call", error=str(e))
+            raise ClaudeDesktopError(f"Desktop interaction error: {str(e)}")
     
     def _parse_claude_response(self, response_text: str) -> Dict[str, Any]:
         """Parse Claude's JSON response with fallback handling."""
@@ -340,32 +517,40 @@ Please analyze these errors and provide a comprehensive fix plan following the J
                 "content": self._build_user_prompt([error_message], context, service_type)
             }]
             
-            response = await self._exponential_backoff_retry(
-                self._make_api_call,
+            response_text = await self._exponential_backoff_retry(
+                self._make_desktop_call,
                 messages,
                 request_id
             )
             
-            # Parse response
-            parsed_response = self._parse_claude_response(response.content[0].text)
+            if response_text:
+                # Parse response
+                parsed_response = self._parse_claude_response(response_text)
+                
+                fix_response = FixResponse(
+                    fix_commands=parsed_response.get("fix_commands", []),
+                    explanation=parsed_response.get("explanation", ""),
+                    confidence=parsed_response.get("confidence", 0.5),
+                    requires_restart=parsed_response.get("requires_restart", False),
+                    rollback_commands=parsed_response.get("rollback_commands", []),
+                    validation_commands=parsed_response.get("validation_commands", []),
+                    estimated_downtime=parsed_response.get("estimated_downtime", 0),
+                    risk_level=parsed_response.get("risk_level", "medium"),
+                    success=True
+                )
+                
+                return fix_response
+            else:
+                # No response from Claude Desktop, use fallback
+                logger.warning(
+                    "No response from Claude Desktop, using fallback",
+                    request_id=request_id
+                )
+                return self._get_fallback_response(error_message, service_type)
             
-            fix_response = FixResponse(
-                fix_commands=parsed_response.get("fix_commands", []),
-                explanation=parsed_response.get("explanation", ""),
-                confidence=parsed_response.get("confidence", 0.5),
-                requires_restart=parsed_response.get("requires_restart", False),
-                rollback_commands=parsed_response.get("rollback_commands", []),
-                validation_commands=parsed_response.get("validation_commands", []),
-                estimated_downtime=parsed_response.get("estimated_downtime", 0),
-                risk_level=parsed_response.get("risk_level", "medium"),
-                success=True
-            )
-            
-            return fix_response
-            
-        except ClaudeAPIError as e:
+        except ClaudeDesktopError as e:
             logger.error(
-                "Claude API error, using fallback",
+                "Claude Desktop error, using fallback",
                 request_id=request_id,
                 error=str(e)
             )

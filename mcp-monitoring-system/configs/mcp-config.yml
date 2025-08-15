@@ -1,14 +1,16 @@
 # Main MCP Server Configuration
 # This is the primary configuration file for the MCP Distributed Monitoring System
 
-# Claude API Configuration
-claude_api_key: "${CLAUDE_API_KEY}"  # Set via environment variable for security
-claude:
+# Claude Desktop Configuration
+claude_desktop:
+  path: ""  # Auto-detect Claude Desktop installation path
   model: "claude-3-5-sonnet-20241022"
   max_retries: 3
   timeout: 300
   base_delay: 1.0
   max_delay: 60.0
+  # Enable offline mode if Claude Desktop is not available
+  offline_mode: true
 
 # Token Management Configuration
 token_limits:

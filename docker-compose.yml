@@ -67,8 +67,8 @@ services:
       - "8080:8080"
       - "9090:9090"
     environment:
-      - CLAUDE_API_KEY=${CLAUDE_API_KEY}
       - MCP_CONFIG_PATH=/app/configs/mcp-config.yml
+      - CLAUDE_DESKTOP_PATH=${CLAUDE_DESKTOP_PATH:-}
       - DATABASE_URL=postgresql://mcp_user:${MCP_DB_PASSWORD:-mcp_pass}@postgres-shared:5432/mcp_monitoring
       - REDIS_URL=redis://:${REDIS_SHARED_PASSWORD:-secure_redis_password}@redis-shared:6379/1
       - PYTHONPATH=/app

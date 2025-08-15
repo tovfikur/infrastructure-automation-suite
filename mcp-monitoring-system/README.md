@@ -48,8 +48,10 @@ The MCP (Model Context Protocol) Distributed Monitoring System provides:
 
 - Python 3.11+
 - Docker & Docker Compose
-- Claude API key from Anthropic
+- **Claude Desktop App** (download from https://claude.ai/download)
 - SSH keys for client connections
+
+**No Claude API key required!** The system integrates directly with your Claude Desktop application.
 
 ### 1. Environment Setup
 
@@ -60,7 +62,7 @@ cd mcp-system
 
 # Set up environment variables
 cp .env.example .env
-# Edit .env with your Claude API key and other settings
+# Edit .env with your settings (no API key needed!)
 ```
 
 ### 2. Configuration

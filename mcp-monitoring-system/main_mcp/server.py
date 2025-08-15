@@ -75,8 +75,8 @@ class MainMCPServer:
             with open(self.config_path, 'r') as f:
                 config = yaml.safe_load(f)
             
-            # Validate required configuration
-            required_keys = ['claude_api_key', 'token_limits', 'ssh_settings']
+            # Validate required configuration (claude_desktop is optional now)
+            required_keys = ['token_limits', 'ssh_settings']
             for key in required_keys:
                 if key not in config:
                     raise MCPServerError(f"Missing required configuration: {key}")
@@ -122,9 +122,9 @@ class MainMCPServer:
             self.token_manager = TokenLimitManager(token_config)
             
             # Initialize Claude client
-            claude_config = self.config.get("claude", {})
+            claude_config = self.config.get("claude_desktop", {})
             self.claude_client = ClaudeClient(
-                api_key=self.config["claude_api_key"],
+                claude_desktop_path=claude_config.get("path"),
                 model=claude_config.get("model", "claude-3-5-sonnet-20241022"),
                 max_retries=claude_config.get("max_retries", 3),
                 timeout=claude_config.get("timeout", 300)
